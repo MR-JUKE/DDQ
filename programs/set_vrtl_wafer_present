@@ -1,0 +1,17 @@
+;************************************************************************************************
+; 1. 함수 이름 : set_vrtl_wafer_present()
+;
+; 2. 함수 설명 : 로봇의 실제 웨이퍼 유/무 상태를 판단하기 위해 가상으로 웨이퍼 유/무 상태를 설정하는 함수입니다.
+;************************************************************************************************
+;
+.PARAM p_i_arm_mode,p_i_master_arm,p_i_is_virtual_wafer_present
+.LOCAL l_idx_master_arm
+;
+;
+        IF (p_i_arm_mode == def_arm_mode_single) THEN
+                g_is_vrtl_wafer_present[p_i_master_arm] = p_i_is_virtual_wafer_present
+        ELIF (p_i_arm_mode == def_arm_mode_dual) THEN
+                FOR l_idx_master_arm = 1 TO def_max_master_arm
+                        g_is_vrtl_wafer_present[l_idx_master_arm] = p_i_is_virtual_wafer_present
+                END
+        END

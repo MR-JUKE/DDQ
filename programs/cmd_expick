@@ -1,0 +1,238 @@
+;************************************************************************************************
+; 1. 함수 이름: cmd_expick()
+;
+; 2. 함수 설명: EX-PICK 기능을 활성화하고 동작을 수행하는 함수입니다.
+;
+; 3. Defined Error Code: ERR_3.0 ~ 3.8
+;************************************************************************************************
+;
+.LOCAL l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm
+.LOCAL l_cur_ui_cmd,l_cur_ui_stnno,l_cur_ui_slotno,l_cur_ui_arm_mode,l_cur_ui_master_arm
+.LOCAL l_ret_errcode,l_ret_is_safepose,l_err_count
+;
+;
+        ui_cur_cmd = def_cmd_expick
+        Call get_cur_ui_cmd_var(l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm)
+        TPWrite 0,"======== STATION %d-%d EX-PICK ========",l_ret_stnno,l_ret_slotno
+        l_cur_ui_cmd = l_ret_cmd
+        l_cur_ui_stnno = l_ret_stnno
+        l_cur_ui_slotno = l_ret_slotno
+        l_cur_ui_arm_mode = l_ret_arm_mode
+        l_cur_ui_master_arm = l_ret_master_arm
+;
+        IF (l_cur_ui_cmd <> def_cmd_expick) THEN
+                TPWrite 0,"[cmd_expick] ERR_3.0: WRONG COMMAND: %d",l_cur_ui_cmd
+                RaiseError -def_err_command_param
+                Return
+        END
+;
+        Call check_interlocks(l_cur_ui_stnno,def_move_waitpose,l_ret_errcode)
+        IF (l_ret_errcode <> def_err_none) THEN
+                TPWrite 0,"[cmd_expick] ERR_3.1: INTERLOCK ERROR"
+                RaiseError  -l_ret_errcode
+                Return
+        END
+;
+;
+;******** Wafer Present, Wafer Slide, AWC, Door 기능 활성화/비활성화 여부를 저장한다.
+.LOCAL l_ret_is_on
+.LOCAL l_is_wafer_present_interlock_on,l_is_enabled_wfr_present_param,l_is_wafer_present_on
+.LOCAL l_is_wafer_slide_interlock_on,l_is_enabled_wafer_slide_param,l_is_wafer_slide_on
+.LOCAL l_is_awc_interlock_on,l_is_enabled_awc_param,l_is_awc_on
+.LOCAL l_is_gate_interlock_on
+;
+        Call get_status_interlock(def_interlock_mask_present_sensor,l_ret_is_on)
+        l_is_wafer_present_interlock_on = l_ret_is_on
+        l_is_enabled_wfr_present_param = ui_stn_wafer_detection_enable[l_cur_ui_stnno]; Station Param 중 Wafer 감지 ON/OFF 여부 변수 'ui_stn_wafer_detection_enable[]' 값 저장.
+;
+        l_is_wafer_present_on = (l_is_wafer_present_interlock_on == TRUE) AND (l_is_enabled_wfr_present_param <> FALSE)
+;
+        Call get_status_interlock(def_interlock_mask_wafer_slide,l_ret_is_on)
+        l_is_wafer_slide_interlock_on = l_ret_is_on
+        l_is_enabled_wafer_slide_param = ui_stn_awc_enable_wafer_slide[l_cur_ui_stnno]
+;
+        l_is_wafer_slide_on = (l_is_wafer_slide_interlock_on == TRUE) AND (l_is_enabled_wafer_slide_param <> FALSE)
+;
+        Call get_status_interlock(def_interlock_mask_awc,l_ret_is_on)
+        l_is_awc_interlock_on = l_ret_is_on
+        l_is_enabled_awc_param = ui_stn_awc_enable[l_cur_ui_stnno]
+;
+        l_is_awc_on = (l_is_awc_interlock_on == TRUE) AND (l_is_enabled_awc_param <> FALSE)
+;
+        Call get_status_interlock(def_interlock_mask_gate,l_ret_is_on)
+        l_is_gate_interlock_on = l_ret_is_on
+;
+;
+        Call set_robot_process(l_cur_ui_cmd,l_cur_ui_stnno,l_cur_ui_slotno,l_cur_ui_arm_mode,l_cur_ui_master_arm)
+        Call set_seq_start(TRUE)
+;
+        WHILE (TRUE == g_flag_seq_start) DO
+                IF (g_pre_seqno <> g_cur_seqno) THEN
+                        g_pre_seqno = g_cur_seqno
+                        l_err_count = 0
+                END
+;
+;*******************************************************************************************************************
+; SEQ 1: 저장된 로봇 처리 변수 값을 읽어 저장합니다.
+;*******************************************************************************************************************
+                IF (g_cur_seqno == 1) THEN
+;
+                .LOCAL l_cur_robot_cmd,l_cur_robot_stnno,l_cur_robot_slotno,l_cur_robot_arm_mode,l_cur_robot_master_arm
+;
+                        TPWrite 0,"SEQUENCE START"
+                        Call get_cur_robot_process(l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm)
+                        l_cur_robot_cmd = l_ret_cmd
+                        l_cur_robot_stnno = l_ret_stnno
+                        l_cur_robot_slotno = l_ret_slotno
+                        l_cur_robot_arm_mode = l_ret_arm_mode
+                        l_cur_robot_master_arm = l_ret_master_arm
+;
+                        g_cur_seqno = 10
+;
+;*******************************************************************************************************************
+; SEQ 10: 게이트, 리프트 인터락을 확인하고 웨이퍼 데이터가 없는지, SAFE POSE 위치인지 확인합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 10) THEN
+;
+                .LOCAL l_ret_is_gate_open,l_ret_is_lift_up
+;
+                        Call check_gate_open(l_cur_robot_stnno,l_ret_is_gate_open) ; STATION DOOR 열림 여부 확인
+                        IF (l_ret_is_gate_open <> TRUE) THEN
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_expick] ERR_3.2: GATE CLOSE"
+                                RaiseError -def_err_gate_open
+                        END
+;
+                        Call check_lift_up(l_cur_robot_stnno,l_ret_is_lift_up) ; LIFT UP 여부 확인
+                        IF (l_ret_is_lift_up <> TRUE) THEN
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_expick] ERR_3.3: LIFT UP"
+                                RaiseError -def_err_lift
+                        END
+;
+                        Call check_wafer_data(l_cur_robot_cmd,l_cur_robot_arm_mode,l_cur_robot_master_arm,l_ret_errcode)
+                        IF (l_ret_errcode <> def_err_none) THEN
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_expick] ERR_3.4: INAPPROPRIATE WAFER DATA"
+                                RaiseError -l_ret_errcode
+                        END
+;
+                        Call check_safe_pose(l_ret_is_safepose)
+                        IF (l_ret_is_safepose <> TRUE) THEN
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_expick] ERR_3.5: NOT IN SAFE POSE"
+                                RaiseError -def_err_is_safe_pose
+                        ELSE
+                                Call set_status_safepose(TRUE)
+                                Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_none)
+                        END
+;
+                        g_cur_seqno = 20
+;
+;*******************************************************************************************************************
+; SEQ 20: SAFEPOSE 위치로 이동합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 20) THEN
+                        ;Call goto_safepose()
+;
+                        g_cur_seqno = 30
+;
+;*******************************************************************************************************************
+; SEQ 30: 로봇 모션 포인트를 설정하고 RETRACT 신호를 켭니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 30) THEN
+                        Call enable_expick_mode(TRUE)
+                        Call set_robot_waypoints(l_cur_robot_cmd,l_cur_robot_stnno,l_cur_robot_slotno,l_cur_robot_arm_mode,l_cur_robot_master_arm)
+                        Call set_signal_retract(l_cur_robot_stnno,def_signal_on)
+;
+                        g_cur_seqno = 40
+;
+;*******************************************************************************************************************
+; SEQ 40: WAITPOSE 위치로 이동합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 40) THEN
+;                       ; PICK 명령이므로 웨이퍼가 존재하지 않는 상태라고 가상으로 설정합니다.
+                        Call set_vrtl_wafer_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,FALSE)
+;
+                        TPWrite 0, "[GOTO WAIT]"
+                        Call goto_position(l_cur_robot_stnno,def_move_waitpose,def_motion_mode_cmd)
+;
+                        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_down)
+                        Call set_status_safepose(TRUE)
+;
+                        g_cur_seqno = 50
+;
+;*******************************************************************************************************************
+; SEQ 50: WAFER PRESENT 인터락 여부에 따라 기능 활성화
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 50) THEN
+                        IF (l_is_wafer_present_on == TRUE) THEN
+                                TPWrite 0,"[ENABLE WAFER PRESENCE CHECK]"
+                                Call enable_wafer_present_check(TRUE)
+                        END
+;
+                        IF (l_is_gate_interlock_on == TRUE) THEN
+                                TPWrite 0,"[ENABLE GATE CHECK]"
+                                Call enable_gate_open_check(TRUE)
+                        END
+;
+                        g_cur_seqno = 60
+;
+;*******************************************************************************************************************
+; SEQ 60: EXTEND 위치로 이동합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 60) THEN
+;
+                .LOCAL l_ret_is_mismatch,l_ret_is_error
+;
+                        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_extend,def_rq_present_down)
+                        Call set_signal_retract(l_cur_robot_stnno,def_signal_off)
+                        Call set_status_safepose(FALSE)
+;
+                        TPWrite 0, "[GOTO EXTEND]"
+                        Call goto_position(l_cur_robot_stnno,def_move_extend,def_motion_mode_cmd)
+;
+                        Call get_wafer_presence_mismatch(l_ret_is_mismatch)
+                        Call enable_wafer_present_check(FALSE)
+;
+                        Call get_gate_open_error(l_ret_is_error)
+                        Call enable_gate_open_check(FALSE)
+;
+                        IF ((l_ret_is_mismatch == TRUE) OR (l_ret_is_error == TRUE)) THEN
+                                WaitTime 1
+                                IF (ui_stn_option_wfr_det_fail[l_cur_robot_stnno] == def_wfr_detect_fail_pos_retract) THEN
+                                        Call goto_safepose()
+                                        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_down)
+                                END
+;
+                                Call set_seq_start(FALSE)
+                                IF (l_ret_is_mismatch == TRUE) THEN
+                                        TPWrite 0,"[cmd_expick] ERR_3.6: WAFER PRESENCE MISMATCH EX-PICK COMMAND"
+                                        RaiseError  -def_err_wafer_present
+                                ELIF (l_ret_is_error == TRUE) THEN
+                                        TPWrite 0,"[cmd_expick] ERR_3.7: GATE CLOSE"
+                                        RaiseError  -def_err_gate_open
+                                END
+                        END
+;
+                        WaitTime ui_stn_timer_extend_delay[l_cur_robot_stnno]
+;
+                        g_cur_seqno = 9999
+;
+;*******************************************************************************************************************
+; SEQ 9999: SEQUENCE를 끝냅니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 9999) THEN
+                        TPWrite 0,"SEQUENCE END"
+                        Call set_seq_start(FALSE)
+                END
+        END
+;
+;
+.LOCAL l_ret_is_fan_error
+;
+        Call check_fan_error(l_ret_is_fan_error)
+        IF (l_ret_is_fan_error <> FALSE) THEN
+                TPWrite 0,"[cmd_expick] ERR_3.8: FAN ERROR"
+                RaiseError  -def_err_fan
+        END

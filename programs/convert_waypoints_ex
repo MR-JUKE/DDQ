@@ -1,0 +1,22 @@
+;************************************************************************************************
+; 1. Function : convert_waypoints_ex(p_cur_cmd,p_stnno,p_slotno,p_armmode,p_mainarm)
+;
+; 2. Description : ex-pick, ret-pick, ex-place, ret-place 기능 관련 Motion Point를 생성하는 함수입니다.
+;
+; 3. Defined ErrorCode : -
+;************************************************************************************************
+;
+;
+.PARAM p_cur_cmd,p_stnno,p_slotno,p_armmode,p_mainarm
+;
+;
+        SetJ/1 #j_point_waitpose,  GetJ(#j_point_teach,def_axis_z)
+        SetJ/1 #j_point_extend,  GetJ(#j_point_teach,def_axis_z)
+        SetJ/1 #j_point_up,  GetJ(#j_point_teach,def_axis_z)
+        SetJ/1 #j_point_down,  GetJ(#j_point_teach,def_axis_z)
+        SetJ/1 #j_point_retract,  GetJ(#j_point_teach,def_axis_z)
+;
+        SetJ/1 #j_point_awc_via,  GetJ(#j_point_teach,def_axis_z)
+        SetJ/1 #j_point_awc_extend,  GetJ(#j_point_teach,def_axis_z)
+        SetJ/1 #j_point_awc_teach,  GetJ(#j_point_teach,def_axis_z)
+        SetJ/1 #j_point_awc_down,  GetJ(#j_point_teach,def_axis_z)

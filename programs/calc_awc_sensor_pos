@@ -1,0 +1,75 @@
+;************************************************************************************************
+; 1. 함수이름 : calc_awc_sensor_pos(p_i_stnno,p_i_master_arm,p_i_awc_select,#p_i_j_ext_rising_pos,#p_i_j_ext_falling_pos,#p_i_j_ret_rising_pos,#p_i_j_ret_falling_pos,p_o_errcode)
+;
+; 2. 함수 설명 : AWC TEACHING 진행 시 AWC SENSOR의 위치를 계산하여 저장합니다.
+;************************************************************************************************
+.PARAM p_i_stnno,p_i_master_arm,p_i_awc_select,#p_i_j_ext_rising_pos,#p_i_j_ext_falling_pos,#p_i_j_ret_rising_pos,#p_i_j_ret_falling_pos,p_o_errcode
+.LOCAL l_rising_pos_angle,l_falling_pos_angle
+.LOCAL l_ext_rising_pos_dist,l_ext_falling_pos_dist
+.LOCAL l_ext_xpos_awc_sensor,l_ext_ypos_awc_sensor
+.LOCAL l_ret_rising_pos_dist,l_ret_falling_pos_dist
+.LOCAL l_ret_xpos_awc_sensor,l_ret_ypos_awc_sensor
+.LOCAL l_ext_discriminent,l_ret_discriminent
+;
+;
+        p_o_errcode = def_err_none
+        l_rising_pos_angle = GetJ(#p_i_j_ext_rising_pos,def_axis_t)
+        l_falling_pos_angle = GetJ(#p_i_j_ext_falling_pos,def_axis_t)
+;
+        IF (p_i_master_arm == def_master_arm_lower) THEN
+                l_ext_rising_pos_dist = GetJ(#p_i_j_ext_rising_pos,def_axis_l)+def_robot_tool_len-def_robot_home_ofst
+                l_ext_falling_pos_dist = GetJ(#p_i_j_ext_falling_pos,def_axis_l)+def_robot_tool_len-def_robot_home_ofst
+                l_ret_rising_pos_dist = GetJ(#p_i_j_ret_rising_pos,def_axis_l)+def_robot_tool_len-def_robot_home_ofst
+                l_ret_falling_pos_dist = GetJ(#p_i_j_ret_falling_pos,def_axis_l)+def_robot_tool_len-def_robot_home_ofst
+        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                l_ext_rising_pos_dist = GetJ(#p_i_j_ext_rising_pos,def_axis_u)+def_robot_tool_len-def_robot_home_ofst
+                l_ext_falling_pos_dist = GetJ(#p_i_j_ext_falling_pos,def_axis_u)+def_robot_tool_len-def_robot_home_ofst
+                l_ret_rising_pos_dist = GetJ(#p_i_j_ret_rising_pos,def_axis_u)+def_robot_tool_len-def_robot_home_ofst
+                l_ret_falling_pos_dist = GetJ(#p_i_j_ret_falling_pos,def_axis_u)+def_robot_tool_len-def_robot_home_ofst
+        END
+;
+;       ; // AWC 센서가 트리거 되었을 때 로봇 ARM의 위치값을 이용하여 AWC 센서 위치를 구할 수 있는지 판별. 판별 값이 0 이하면 에러 발생.
+        l_ext_discriminent = (def_rad_wafer*def_rad_wafer)-(((l_ext_falling_pos_dist-l_ext_rising_pos_dist)/2)*((l_ext_falling_pos_dist-l_ext_rising_pos_dist)/2))
+        IF (l_ext_discriminent <= 0) OR (l_ext_discriminent >= def_rad_wafer*def_rad_wafer) THEN
+                TPWrite 0,"[calc_awc_sensor_pos] INVALID WAFER TRIGGER EXTEND POS"
+                p_o_errcode = def_err_calc_awc_sensor_pos
+                Return
+        END
+        l_ret_discriminent = (def_rad_wafer*def_rad_wafer)-(((l_ret_falling_pos_dist-l_ret_rising_pos_dist)/2)*((l_ret_falling_pos_dist-l_ret_rising_pos_dist)/2))
+        IF (l_ret_discriminent <= 0) OR (l_ret_discriminent >= def_rad_wafer*def_rad_wafer) THEN
+                TPWrite 0,"[calc_awc_sensor_pos] INVALID WAFER TRIGGER RETRACT POS"
+                p_o_errcode = def_err_calc_awc_sensor_pos
+                Return
+        END
+;
+;       ; // AWC 센서 X, Y 위치 계산
+        IF (p_i_awc_select == def_awc_sensor_left) THEN
+                l_ext_xpos_awc_sensor = ((l_ext_rising_pos_dist+l_ext_falling_pos_dist)/2)*Cos(l_rising_pos_angle)
+                l_ext_xpos_awc_sensor = l_ext_xpos_awc_sensor-Sqrt((def_rad_wafer*def_rad_wafer)-(((l_ext_rising_pos_dist-l_ext_falling_pos_dist)/2)*((l_ext_rising_pos_dist-l_ext_falling_pos_dist)/2)))*Sin(l_rising_pos_angle)
+;
+                l_ext_ypos_awc_sensor = ((l_ext_rising_pos_dist+l_ext_falling_pos_dist)/2)*Sin(l_rising_pos_angle)
+                l_ext_ypos_awc_sensor = l_ext_ypos_awc_sensor+Sqrt((def_rad_wafer*def_rad_wafer)-(((l_ext_rising_pos_dist-l_ext_falling_pos_dist)/2)*((l_ext_rising_pos_dist-l_ext_falling_pos_dist)/2)))*Cos(l_rising_pos_angle)
+;
+                l_ret_xpos_awc_sensor = ((l_ret_rising_pos_dist+l_ret_falling_pos_dist)/2)*Cos(l_rising_pos_angle)
+                l_ret_xpos_awc_sensor = l_ret_xpos_awc_sensor-Sqrt((def_rad_wafer*def_rad_wafer)-(((l_ret_rising_pos_dist-l_ret_falling_pos_dist)/2)*((l_ret_rising_pos_dist-l_ret_falling_pos_dist)/2)))*Sin(l_rising_pos_angle)
+;
+                l_ret_ypos_awc_sensor = ((l_ret_rising_pos_dist+l_ret_falling_pos_dist)/2)*Sin(l_rising_pos_angle)
+                l_ret_ypos_awc_sensor = l_ret_ypos_awc_sensor+Sqrt((def_rad_wafer*def_rad_wafer)-(((l_ret_rising_pos_dist-l_ret_falling_pos_dist)/2)*((l_ret_rising_pos_dist-l_ret_falling_pos_dist)/2)))*Cos(l_rising_pos_angle)
+;
+        ELIF (p_i_awc_select == def_awc_sensor_right) THEN
+                l_ext_xpos_awc_sensor = ((l_ext_rising_pos_dist+l_ext_falling_pos_dist)/2)*Cos(l_rising_pos_angle)
+                l_ext_xpos_awc_sensor = l_ext_xpos_awc_sensor+Sqrt((def_rad_wafer*def_rad_wafer)-(((l_ext_rising_pos_dist-l_ext_falling_pos_dist)/2)*((l_ext_rising_pos_dist-l_ext_falling_pos_dist)/2)))*Sin(l_rising_pos_angle)
+;
+                l_ext_ypos_awc_sensor = ((l_ext_rising_pos_dist+l_ext_falling_pos_dist)/2)*Sin(l_rising_pos_angle)
+                l_ext_ypos_awc_sensor = l_ext_ypos_awc_sensor-Sqrt((def_rad_wafer*def_rad_wafer)-(((l_ext_rising_pos_dist-l_ext_falling_pos_dist)/2)*((l_ext_rising_pos_dist-l_ext_falling_pos_dist)/2)))*Cos(l_rising_pos_angle)
+;
+                l_ret_xpos_awc_sensor = ((l_ret_rising_pos_dist+l_ret_falling_pos_dist)/2)*Cos(l_rising_pos_angle)
+                l_ret_xpos_awc_sensor = l_ret_xpos_awc_sensor+Sqrt((def_rad_wafer*def_rad_wafer)-(((l_ret_rising_pos_dist-l_ret_falling_pos_dist)/2)*((l_ret_rising_pos_dist-l_ret_falling_pos_dist)/2)))*Sin(l_rising_pos_angle)
+;
+                l_ret_ypos_awc_sensor = ((l_ret_rising_pos_dist+l_ret_falling_pos_dist)/2)*Sin(l_rising_pos_angle)
+                l_ret_ypos_awc_sensor = l_ret_ypos_awc_sensor-Sqrt((def_rad_wafer*def_rad_wafer)-(((l_ret_rising_pos_dist-l_ret_falling_pos_dist)/2)*((l_ret_rising_pos_dist-l_ret_falling_pos_dist)/2)))*Cos(l_rising_pos_angle)
+        END
+;
+;
+;       ; // AWC 센서 위치 저장s
+        Call set_position_awc_sensor(p_i_stnno,p_i_master_arm,p_i_awc_select,l_ext_xpos_awc_sensor,l_ext_ypos_awc_sensor,l_ret_xpos_awc_sensor,l_ret_ypos_awc_sensor)

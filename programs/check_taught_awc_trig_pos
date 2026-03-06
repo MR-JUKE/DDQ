@@ -1,0 +1,36 @@
+;************************************************************************************************
+; 1. 함수 이름 : check_taught_awc_trig_pos(p_i_stnno,p_i_master_arm,p_o_is_taught)
+;
+; 2. 함수 설명 : 입력받은 스테이션에 AWC 트리거 위치 티칭이 됐는지 확인합니다.
+;************************************************************************************************
+;
+.PARAM p_i_stnno,p_i_master_arm,p_o_is_taught
+.LOCAL $l_str,l_is_defined,l_idx,l_awc_trig_pos_idx
+;
+;
+        p_o_is_taught = TRUE
+;
+        l_idx = p_i_stnno*10
+;
+        IF (p_i_master_arm == def_master_arm_lower) THEN
+                FOR l_awc_trig_pos_idx = 0 TO def_max_awc_trig_pos_index-1
+                        MakeStr $l_str,"#j_awc_trig_pos_lowarm[%d]",l_idx+l_awc_trig_pos_idx
+                        l_is_defined = Defined($l_str)
+                        IF (l_is_defined == FALSE) THEN
+                                TPWrite 0,"NOT TAUGHT AWC TRIG POS(LOWER ARM)"
+                                p_o_is_taught = FALSE
+                                Return
+                        END
+                END
+;
+        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                FOR l_awc_trig_pos_idx = 0 TO def_max_awc_trig_pos_index-1
+                        MakeStr $l_str,"#j_awc_trig_pos_uparm[%d]",l_idx+l_awc_trig_pos_idx
+                        l_is_defined = Defined($l_str)
+                        IF (l_is_defined == FALSE) THEN
+                                TPWrite 0,"NOT TAUGHT AWC TRIG POS(UPPER ARM)"
+                                p_o_is_taught = FALSE
+                                Return
+                        END
+                END
+        END

@@ -1,0 +1,20 @@
+;************************************************************************************************
+; 1. 함수 이름 : b_get_gate_open_status(p_i_stnno,p_o_is_open)
+;
+; 2. 함수 설명 : 스테이션 게이트 신호를 모니터링, 게이트가 열려 있는지 닫혀 있는지 상태를 반환하는 Sub task 함수입니다.
+;************************************************************************************************
+;
+.PARAM p_i_stnno,p_o_is_gate_open
+.LOCAL l_is_gate_open,l_dinput_num_door,l_sig_door
+;
+;
+        l_is_gate_open = TRUE
+;
+        l_dinput_num_door = ui_stn_signal_input_gate[p_i_stnno]
+        l_sig_door = Sig(1000+l_dinput_num_door)
+;
+        IF (l_dinput_num_door <> 0) AND (l_sig_door <> FALSE) THEN
+                l_is_gate_open = FALSE
+        END
+;
+        p_o_is_gate_open = l_is_gate_open

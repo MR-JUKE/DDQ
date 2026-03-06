@@ -1,0 +1,20 @@
+;************************************************************************************************
+; 1. 함수 이름 : set_robot_process(p_i_cmd,p_i_stnno,p_i_slotno,p_i_arm_mode,p_i_master_arm)
+; 2. 함수 설명 : 현재 진행사항을 저장 
+;************************************************************************************************
+.PARAM p_i_cmd,p_i_stnno,p_i_slotno,p_i_arm_mode,p_i_master_arm
+;
+;
+; 현재 로봇 명령 처리 변수값을 이전 로봇 명령 처리 변수에 저장.
+        g_pre_robot_cmd = g_cur_robot_cmd
+        g_pre_robot_stnno = g_cur_robot_stnno
+        g_pre_robot_slotno = g_cur_robot_slotno
+        g_pre_robot_arm_mode = g_cur_robot_arm_mode
+        g_pre_robot_master_arm = g_cur_robot_master_arm
+;
+; 입력받은 UI 명령 변수 값을 현재 로봇 명령 처리 변수에 저장. 
+        g_cur_robot_cmd = p_i_cmd
+        g_cur_robot_stnno = p_i_stnno
+        g_cur_robot_slotno = p_i_slotno
+        g_cur_robot_arm_mode = p_i_arm_mode
+        g_cur_robot_master_arm = p_i_master_arm

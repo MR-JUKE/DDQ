@@ -1,0 +1,10 @@
+;************************************************************************************************
+; 1. 함수 이름: create_waypoint_safepose()
+;
+; 2. 함수 설명: SAFE POSE 위치를 생성합니다.
+;
+; 3. Defined Error Code:
+;************************************************************************************************
+;
+        Point #j_point_safepose = #Here; 현재 로봇의 자세를 Joint 좌표로 받아옴
+        SetJ/3/4 #j_point_safepose,  def_homepose_l_axis, def_homepose_u_axis; SAFE POSE 좌표의 L, U축에 home l,u axis 값 반영

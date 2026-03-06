@@ -1,0 +1,113 @@
+;************************************************************************************************
+; 1. 함수 이름: goto_extend()
+;
+; 2. 함수 설명: EXTEND 위치(STATION 진입)로 이동하는 함수입니다.
+;
+; 3. Defined Error Code: ERR_13.0 ~ 13.2
+;************************************************************************************************
+        TPWrite 0,"-- [EXTEND]"
+;
+.LOCAL l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm
+.LOCAL l_cur_robot_cmd,l_cur_robot_stnno,l_cur_robot_slotno,l_cur_robot_arm_mode,l_cur_robot_master_arm
+.LOCAL l_ret_cur_step,l_ret_pre_step
+.LOCAL l_ret_is_on,l_is_gate_interlock_on,l_ret_is_error
+.LOCAL l_ret_errcode
+;
+;
+        Call get_cur_robot_process(l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm) ; 함수 인자에 현재 로봇이 처리 중인 명령을 반환받는다.
+        l_cur_robot_cmd = l_ret_cmd
+        l_cur_robot_stnno = l_ret_stnno
+        l_cur_robot_slotno = l_ret_slotno
+        l_cur_robot_arm_mode = l_ret_arm_mode
+        l_cur_robot_master_arm = l_ret_master_arm
+;
+;
+;================================================================================================
+;     인터락 확인
+;================================================================================================
+        Call check_interlocks(l_cur_robot_stnno,def_move_extend,l_ret_errcode)
+        IF (l_ret_errcode <> def_err_none) THEN
+                TPWrite 0,"[goto_extend] ERR_13.0: INTERLOCK ERROR"
+                RaiseError  -l_ret_errcode
+        END
+;
+;
+;================================================================================================
+;     RETRACT, RQ PRESENT, SAFEPOSE 상태 설정
+;================================================================================================
+        Call set_signal_retract(l_cur_robot_stnno,def_signal_off); RETRACT 신호 설정
+;
+;       ; RQ PRESENT 상태 설정
+        IF (l_cur_robot_cmd == def_cmd_pick) THEN
+                Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_extend,def_rq_present_down)
+        ELIF (l_cur_robot_cmd == def_cmd_place) THEN
+                Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_extend,def_rq_present_up)
+        END
+;
+        Call set_status_safepose(FALSE); SAFEPOSE 상태 설정
+;     
+;
+;================================================================================================
+;     GATE 신호 실시간 확인 기능 설정
+;================================================================================================
+        Call get_status_interlock(def_interlock_mask_gate,l_ret_is_on)
+        l_is_gate_interlock_on = l_ret_is_on
+
+        IF (l_is_gate_interlock_on == TRUE) THEN
+                TPWrite 0,"[ENABLE GATE CHECK]"
+                Call enable_gate_open_check(TRUE)
+        END
+;
+;
+;================================================================================================
+;     모션 시작
+;================================================================================================
+;
+        Call get_robot_step(l_ret_cur_step,l_ret_pre_step)
+;
+        IF (l_cur_robot_cmd == def_cmd_pick) AND (l_ret_cur_step == def_move_waitpose) THEN
+                Call goto_position(l_ret_stnno,def_move_extend,def_motion_mode_goto)
+;
+        ELIF (l_cur_robot_cmd == def_cmd_pick) AND (l_ret_cur_step <> def_move_retract) THEN
+                Call set_robot_step(def_move_extend)
+                Call set_robot_speed(l_cur_robot_stnno,def_move_down,def_motion_mode_goto)
+                Call move_motion_point(l_cur_robot_stnno,def_move_extend)
+;
+        ELIF (l_cur_robot_cmd == def_cmd_place) AND (l_ret_cur_step == def_move_waitpose) THEN
+                Call goto_position(l_ret_stnno,def_move_extend,def_motion_mode_goto)
+;        
+        ELIF (l_cur_robot_cmd == def_cmd_place) AND (l_ret_cur_step <> def_move_retract) THEN
+                Call set_robot_step(def_move_extend)
+                Call set_robot_speed(l_cur_robot_stnno,def_move_up,def_motion_mode_goto)
+                Call move_motion_point(l_cur_robot_stnno,def_move_extend)
+;
+        ELIF (l_cur_robot_cmd == def_cmd_expick) THEN
+                Call goto_position(l_ret_stnno,def_move_extend,def_motion_mode_goto)
+;
+        ELIF (l_cur_robot_cmd == def_cmd_explace) THEN
+                Call goto_position(l_ret_stnno,def_move_extend,def_motion_mode_goto)
+;
+        ELSE
+                TPWrite 0,"[goto_extend] ERR_13.1: INVALID MOTION STEP. CMD: %d, CUR_STEP: %d",l_cur_robot_cmd,l_ret_cur_step
+                RaiseError  -def_err_motion_step
+        END
+;
+;
+;================================================================================================
+;     동작 중 게이트 열림 여부 확인
+;================================================================================================
+        Call get_gate_open_error(l_ret_is_error)
+        Call enable_gate_open_check(FALSE)
+        IF (l_ret_is_error == TRUE) THEN
+                WaitTime 1
+                IF (ui_stn_option_wfr_det_fail[l_cur_robot_stnno] == def_wfr_detect_fail_pos_retract) THEN
+                        Call goto_safepose()
+                        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_down)
+                END
+;
+                TPWrite 0,"[goto_extend] ERR_13.2: GATE CLOSE"
+                RaiseError  -def_err_gate_open
+        END
+;
+;
+        WaitTime ui_stn_timer_extend_delay[l_cur_robot_stnno]

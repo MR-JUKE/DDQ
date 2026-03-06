@@ -1,0 +1,73 @@
+;************************************************************************************************
+; 1. 함수이름 : get_awc_sensor_trig_pos(p_i_stnno,p_i_awc_sensor_pos,p_o_trig_pos1,p_o_trig_pos2)
+;
+; 2. 함수 설명 : 터치 프로브 감지 위치를 반환합니다.
+;************************************************************************************************
+;
+.PARAM p_i_stnno,p_i_awc_sensor_pos,#p_o_j_pos_trig1,#p_o_j_pos_trig2,p_o_errcode
+.LOCAL #l_j_pos_trig1, #l_j_pos_trig2
+.LOCAL l_ret_touch_cnt,l_ret_errcode
+;
+        p_o_errcode = def_err_none
+        Point #l_j_pos_trig1 = Joint(0)
+        Point #l_j_pos_trig2 = Joint(0)
+        Point #p_o_j_pos_trig1 = Joint(0)
+        Point #p_o_j_pos_trig2 = Joint(0)
+;
+;
+;================================================================================================
+;       CHECK TOUCH COUNT
+;================================================================================================
+        l_ret_errcode = def_err_none
+        Call get_probe_touch_count(p_i_awc_sensor_pos,l_ret_touch_cnt,l_ret_errcode) ; Read touch probe count
+        IF (l_ret_errcode == def_err_none) THEN
+                IF (l_ret_touch_cnt <> 2) THEN
+                        TPWrite 0,"[get_awc_sensor_trig_pos] NOT VALID TOUCH PROBE COUNT. COUNT: %d",l_ret_touch_cnt
+                        p_o_errcode = def_err_touch_probe_count
+                        Return
+                END
+        ELSE
+                TPWrite 0,"[get_awc_sensor_trig_pos] UNKNOWN AWC SENSOR INDEX PARAMETER"
+                p_o_errcode = def_err_unknown_param
+                Return
+        END
+;
+;
+;================================================================================================
+;       GET TOUCH PROBE TRIGGER POSITION
+;================================================================================================
+        IF (ui_stn_awc_touchprobe_usage_channel[p_i_stnno] == def_awc_touchprobe_channel_dual) THEN
+                IF (p_i_awc_sensor_pos == def_awc_sensor_left) THEN
+                        Point #l_j_pos_trig1 = #TouchJoint(def_touchprobe_1,1) ; 왼쪽 AWC 센서의 첫번째 Trigger 위치 저장
+                        Point #l_j_pos_trig2 = #TouchJoint(def_touchprobe_1,2) ; 왼쪽 AWC 센서의 두번째 Trigger 위치 저장
+                ELIF (p_i_awc_sensor_pos == def_awc_sensor_right) THEN
+                        Point #l_j_pos_trig1 = #TouchJoint(def_touchprobe_2,1) ; 오른쪽 AWC 센서의 첫번째 Trigger 위치 저장
+                        Point #l_j_pos_trig2 = #TouchJoint(def_touchprobe_2,2) ; 오른쪽 AWC 센서의 두번째 Trigger 위치 저장
+                ELSE
+                        TPWrite 0,"[get_awc_sensor_trig_pos] UNKNOWN AWC SENSOR POS"
+                        p_o_errcode = def_err_unknown_param
+                        Return
+                END
+;
+        ELIF (ui_stn_awc_touchprobe_usage_channel[p_i_stnno] == def_awc_touchprobe_channel_single) THEN
+                IF (p_i_awc_sensor_pos == def_awc_sensor_left) THEN
+                        Point #l_j_pos_trig1 = #TouchJoint(def_touchprobe_1,1) ; 왼쪽 AWC 센서의 첫번째 Trigger 위치 저장
+                        Point #l_j_pos_trig2 = #TouchJoint(def_touchprobe_1,3) ; 왼쪽 AWC 센서의 두번째 Trigger 위치 저장
+                ELIF (p_i_awc_sensor_pos == def_awc_sensor_right) THEN
+                        Point #l_j_pos_trig1 = #TouchJoint(def_touchprobe_1,2) ; 오른쪽 AWC 센서의 첫번째 Trigger 위치 저장
+                        Point #l_j_pos_trig2 = #TouchJoint(def_touchprobe_1,4) ; 오른쪽 AWC 센서의 두번째 Trigger 위치 저장
+                ELSE
+                        TPWrite 0,"[get_awc_sensor_trig_pos] UNKNOWN AWC SENSOR POS PARAM"
+                        p_o_errcode = def_err_unknown_param
+                        Return
+                END
+        ELSE
+                TPWrite 0,"[get_awc_sensor_trig_pos] UNKNOWN TOUCH PROBE USAGE CHANNEL"
+                p_o_errcode = def_err_touch_probe_channel
+                Return                
+        END
+;
+;
+        Point #p_o_j_pos_trig1 = #l_j_pos_trig1
+        Point #p_o_j_pos_trig2 = #l_j_pos_trig2
+        p_o_errcode = def_err_none

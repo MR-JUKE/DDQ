@@ -1,0 +1,18 @@
+;************************************************************************************************
+; 1. 함수 이름 : enable_touch_probe(p_i_is_enable,p_i_latchmode)
+;
+; 2. 함수 설명 : 터치 프로브 기능을 활성화/비활성화 합니다.
+;************************************************************************************************
+;
+.PARAM p_i_is_enable,p_i_latchmode
+;
+        TouchPerAxis OFF
+        TouchStop
+;
+        IF (p_i_is_enable == TRUE) THEN
+                TouchEnable  TRUE, p_i_latchmode
+                TouchAxis 1,1,1,1
+                TouchStart  1, 1
+        ELSE
+                TouchStop
+        END

@@ -1,0 +1,55 @@
+;************************************************************************************************
+; 1. 함수 이름 : job_ptop_joint()
+;
+; 2. 함수 설명 : UI에서 JOB -> MOTION -> P TO P 화면에서 입력받은 두 좌표로 이동하는 함수입니다.
+;************************************************************************************************
+;
+.LOCAL l_speed_coef,l_robot_main_speed
+.LOCAL l_robot_accel_rate,l_robot_decel_rate
+;
+        Call set_status_safepose(FALSE)
+        Call set_robot_step(def_move_none)
+;
+        Smooth  TRUE, 0.1
+;
+        l_speed_coef = ui_speed_coef_high
+        IF (ui_main_speed_idx == def_ui_main_speed_low) THEN
+                l_speed_coef = ui_speed_coef_low
+        ELIF (ui_main_speed_idx == def_ui_main_speed_mid) THEN
+                l_speed_coef = ui_speed_coef_mid
+        ELIF (ui_main_speed_idx == def_ui_main_speed_high) THEN
+                l_speed_coef = ui_speed_coef_high
+        END
+        l_robot_main_speed = 100*l_speed_coef
+        Speed l_robot_main_speed
+;
+        l_robot_accel_rate = Int(100*(l_robot_main_speed/100))
+        l_robot_decel_rate = Int(100*(l_robot_main_speed/100))
+        Accel l_robot_accel_rate
+        Decel l_robot_decel_rate
+;
+        MoveJ  #ui_j_ptop_point1
+        Break
+        Delay ui_ptop_delay
+;
+        Smooth  TRUE, 0.1
+;
+        l_speed_coef = ui_speed_coef_high
+        IF (ui_main_speed_idx == def_ui_main_speed_low) THEN
+                l_speed_coef = ui_speed_coef_low
+        ELIF (ui_main_speed_idx == def_ui_main_speed_mid) THEN
+                l_speed_coef = ui_speed_coef_mid
+        ELIF (ui_main_speed_idx == def_ui_main_speed_high) THEN
+                l_speed_coef = ui_speed_coef_high
+        END
+        l_robot_main_speed = 100*l_speed_coef
+        Speed l_robot_main_speed
+;
+        l_robot_accel_rate = Int(100*(l_robot_main_speed/100))
+        l_robot_decel_rate = Int(100*(l_robot_main_speed/100))
+        Accel l_robot_accel_rate
+        Decel l_robot_decel_rate
+;
+        MoveJ  #ui_j_ptop_point2
+        Break
+        Delay ui_ptop_delay

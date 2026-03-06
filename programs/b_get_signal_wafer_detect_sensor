@@ -1,0 +1,149 @@
+;************************************************************************************************
+; 1. 함수 이름 : b_get_signal_wafer_detect_sensor(p_i_stn_number, p_o_wafer_check_sensor_1st,p_o_wafer_check_sensor_2nd)
+;
+; 2. 함수 설명 : 입력받은 STATION의 WAFER 감지 센서의 INPUT SIGNAL을 읽는 백그라운드 함수입니다.
+;************************************************************************************************
+;
+.PARAM p_i_stn_number,p_o_wafer_check_sensor_1st,p_o_wafer_check_sensor_2nd
+;
+;
+        p_o_wafer_check_sensor_1st = TRUE
+        p_o_wafer_check_sensor_2nd = TRUE
+;
+;
+        IF (ui_stn_wafer_detection_enable[p_i_stn_number] <> FALSE) THEN
+                p_o_wafer_check_sensor_1st = Sig(def_dinput_stx_idx+ui_stn_wafer_detection_ch1[p_i_stn_number])
+                p_o_wafer_check_sensor_2nd = Sig(def_dinput_stx_idx+ui_stn_wafer_detection_ch2[p_i_stn_number])
+        END
+
+;================================================================================================
+;       AWC 센서가 두개 일 경우 
+;================================================================================================
+;        ;IF (ui_stn_awc_select[p_i_stn_number] == def_awc_select_both) THEN ; AWC 센서가 두개 일 경우
+;                SWITCH ui_stn_awc_channel[p_i_stn_number]
+;                        CASE 1 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch1_l)
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch1_r)
+;; 
+;                        CASE 2 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch2_l)
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch2_r)
+;;
+;                        CASE 3 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch3_l)
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch3_r)
+;;
+;                        CASE 4 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch4_l)
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch4_r)
+;;
+;                        CASE 5 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch5_l)
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch5_r)
+;;
+;                        CASE 6 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch6_l)
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch6_r)
+;;
+;                        CASE 7 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch7_l)
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch7_r)
+;;
+;                        CASE 8 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch8_l)
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch8_r)
+;;
+;                        CASE 9 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch9_l)
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch9_r)
+;;
+;                        CASE 10 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch10_l)
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch10_r)
+;;
+;                        DEFAULT  :
+;                        p_o_wafer_check_sensor_1st = FALSE
+;                        p_o_wafer_check_sensor_2nd = FALSE
+;                END
+;;
+;;
+;;================================================================================================
+;;       AWC 센서가 한개(로봇이 바라보는 기준 왼쪽) 있을 경우  
+;;================================================================================================
+;        ELIF (ui_stn_awc_select[p_i_stn_number] == def_awc_select_left) THEN ; AWC 센서가 한개(로봇이 바라보는 기준 왼쪽) 있을 경우
+;                SWITCH ui_stn_awc_channel[p_i_stn_number]
+;                        CASE 1 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch1_l)
+;;
+;                        CASE 2 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch2_l)
+;;
+;                        CASE 3 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch3_l)
+;;
+;                        CASE 4 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch4_l)
+;;
+;                        CASE 5 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch5_l)
+;;
+;                        CASE 6 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch6_l)
+;;
+;                        CASE 7 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch7_l)
+;;
+;                        CASE 8 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch8_l)
+;;
+;                        CASE 9 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch9_l)
+;;
+;                        CASE 10 :
+;                        p_o_wafer_check_sensor_1st = Sig(def_din_awc_ch10_l)
+;;
+;                        DEFAULT  :
+;                        p_o_wafer_check_sensor_1st = FALSE
+;;
+;                END
+;;
+;;================================================================================================
+;;       AWC 센서가 한개(로봇이 바라보는 기준 오른쪽) 있을 경우  
+;;================================================================================================
+;        ELIF (ui_stn_awc_select[p_i_stn_number] == def_awc_select_right) THEN ; AWC 센서가 한개(로봇이 바라보는 기준 오른쪽) 있을 경우
+;                SWITCH ui_stn_awc_channel[p_i_stn_number]
+;                        CASE 1 :
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch1_r)
+;;            
+;                        CASE 2 :
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch2_r)
+;;            
+;                        CASE 3 :
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch3_r)
+;;            
+;                        CASE 4 :
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch4_r)
+;;            
+;                        CASE 5 :
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch5_r)
+;;            
+;                        CASE 6 :
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch6_r)
+;;            
+;                        CASE 7 :
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch7_r)
+;;            
+;                        CASE 8 :
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch8_r)
+;;            
+;                        CASE 9 :
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch9_r)
+;;            
+;                        CASE 10 :
+;                        p_o_wafer_check_sensor_2nd = Sig(def_din_awc_ch10_r)
+;;            
+;                        DEFAULT  :
+;                        p_o_wafer_check_sensor_2nd = FALSE
+;;            
+;                END
+;        END

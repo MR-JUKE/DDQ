@@ -1,0 +1,42 @@
+;************************************************************************************************
+; 1. 함수 이름 : get_status_interlock(p_i_interlock_mask,p_o_is_on)
+;
+; 2. 함수 설명 : 입력받은 INTERLOCK 인자에 대해 ON 상태면 TRUE, OFF 상태면 FALSE를 반환합니다.
+;************************************************************************************************
+;
+.PARAM p_i_interlock_mode,p_o_is_on
+.LOCAL l_is_interlock_on
+;
+;
+        l_is_interlock_on = FALSE
+;
+        IF (p_i_interlock_mode == def_interlock_mask_gate) THEN
+                l_is_interlock_on = g_set_interlock_gate
+;
+        ELIF (p_i_interlock_mode == def_interlock_mask_fan) THEN
+                l_is_interlock_on = g_set_interlock_fan
+;
+        ELIF (p_i_interlock_mode == def_interlock_mask_awc) THEN
+                l_is_interlock_on = g_set_interlock_awc
+;
+        ELIF (p_i_interlock_mode == def_interlock_mask_lift) THEN
+                l_is_interlock_on = g_set_interlock_lift
+;
+        ELIF (p_i_interlock_mode == def_interlock_mask_ahs) THEN
+                l_is_interlock_on = g_set_interlock_ahs
+;
+        ELIF (p_i_interlock_mode == def_interlock_mask_wafer_slide) THEN
+                l_is_interlock_on = g_set_interlock_wafer_slide
+;
+        ELIF (p_i_interlock_mode == def_interlock_mask_present_sensor) THEN
+                l_is_interlock_on = g_set_interlock_present_sensor
+;
+        ELIF (p_i_interlock_mode == def_interlock_mask_wafer_data_check) THEN
+                l_is_interlock_on = g_set_interlock_wafer_data_check
+;
+        ELSE
+                l_is_interlock_on = FALSE
+        END
+;
+        p_o_is_on = l_is_interlock_on
+

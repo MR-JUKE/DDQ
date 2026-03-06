@@ -1,0 +1,112 @@
+;************************************************************************************************
+; 1. 함수이름 : def_io()
+;
+; 2. 함수 설명 : INPUT, OUTPUT 신호 상수를 정의합니다.
+;************************************************************************************************
+;
+;================================================================================================
+;       INPUT SIGNAL ADDRESS START INDEX
+;================================================================================================
+        def_dinput_stx_idx = 1000
+;
+;
+;================================================================================================
+;       SYSTEM IO (1 ~ 16 PORT)
+;================================================================================================
+; ################## INPUT SIGNAL ##################
+        def_din_ems_status = def_dinput_stx_idx+1         ; [SYSTEM INPUT] EMS_STATUS
+        def_din_ems_ext = def_dinput_stx_idx+2            ; [SYSTEM INPUT] EMS_EXT
+        def_din_door_close = def_dinput_stx_idx+3         ; [SYSTEM INPUT] DOOR CLOSE
+        def_din_manual = def_dinput_stx_idx+4             ; [SYSTEM INPUT] MANUAL
+        def_din_remote = def_dinput_stx_idx+5             ; [SYSTEM INPUT] REMOTE
+        def_din_grip = def_dinput_stx_idx+6               ; [SYSTEM INPUT] GRIP
+        def_din_mc_status = def_dinput_stx_idx+7          ; [SYSTEM INPUT] MC STATUS
+        def_din_fan_1 = def_dinput_stx_idx+8              ; [SYSTEM INPUT] FAN1
+        def_din_fan_2 = def_dinput_stx_idx+9              ; [SYSTEM INPUT] FAN2
+        def_din_fan_3 = def_dinput_stx_idx+10             ; [SYSTEM INPUT] FAN3
+;
+; ################## OUTPUT SIGNAL ##################
+        def_dout_servo_on = 1                             ; [SYSTEM OUTPUT] SERVO ON
+        def_dout_home = 2                                 ; [SYSTEM OUTPUT] HOME
+        def_dout_running = 3                              ; [SYSTEM OUTPUT] RUNNING
+        def_dout_error = 4                                ; [SYSTEM OUTPUT] ERROR
+        def_dout_ems = 5                                  ; [SYSTEM OUTPUT] EMS
+        def_dout_reset = 14                               ; [SYSTEM OUTPUT] RESET
+;
+;
+;================================================================================================
+;       ROBOT IO (17 ~ 32 PORT)
+;================================================================================================
+; ################## INPUT SIGNAL ##################
+;        def_din_up_grip = def_dinput_stx_idx+17           ; [ROBOT INPUT] UPPER GRIP
+;        def_din_up_ungrip = def_dinput_stx_idx+18         ; [ROBOT INPUT] UPPER UNGRIP
+;        def_din_low_grip = def_dinput_stx_idx+19          ; [ROBOT INPUT] LOWER GRIP
+;        def_din_low_ungrip = def_dinput_stx_idx+20        ; [ROBOT INPUT] LOWER UNGRIP
+;        def_din_up_sensor = def_dinput_stx_idx+21         ; [ROBOT INPUT] UPPER WAFER SENSOR
+;        def_din_low_sensor = def_dinput_stx_idx+22        ; [ROBOT INPUT] LOWER WAFER SENSOR
+;        def_din_up_map_sensor = def_dinput_stx_idx+23     ; [ROBOT INPUT] UPPER MAP SENSOR
+;        def_din_low_map_sensor = def_dinput_stx_idx+24    ; [ROBOT INPUT] LOWER MAP SENSOR
+;
+; ################## OUTPUT SIGNAL ##################
+;        def_dout_low_grip = 17                         ; [ROBOT OUTPUT] LOWER GRIP
+;        def_dout_low_ungrip = 18                       ; [ROBOT OUTPUT] LOWER UNGRIP
+;        def_dout_up_grip = 19                          ; [ROBOT OUTPUT] UPPER GRIP
+;        def_dout_up_ungrip = 20                        ; [ROBOT OUTPUT] UPPER UNGRIP
+;
+;
+;================================================================================================
+;       EXTERNAL IO (33 ~ 48 PORT)
+;================================================================================================
+; ################## INPUT SIGNAL ##################
+;        def_din_ll_up_op = 33+def_dinput_stx_idx+33          ; [EXTERNAL INPUT] LL UP OPEN
+;        def_din_ll_low_op = 34+def_dinput_stx_idx+34         ; [EXTERNAL INPUT] LL LOW OPEN
+;        def_din_lpm1_op = 37+def_dinput_stx_idx+37           ; [EXTERNAL INPUT] LPM1 OPEN
+;        def_din_lpm2_op = 38+def_dinput_stx_idx+38           ; [EXTERNAL INPUT] LPM2 OPEN
+;        def_din_lpm3_op = 39+def_dinput_stx_idx+39           ; [EXTERNAL INPUT] LPM3 OPEN
+;        def_din_lpm4_op = 40+def_dinput_stx_idx+40           ; [EXTERNAL INPUT] LPM4 OPEN
+;        def_din_align_en = 41+def_dinput_stx_idx+41          ; [EXTERNAL INPUT] ALIGNER RUN
+;        def_din_tm_lid_op = 43+def_dinput_stx_idx+43         ; [EXTERNAL INPUT] TM LID OPEN
+;        def_din_efem_op = 44+def_dinput_stx_idx+44           ; [EXTERNAL INPUT] EFEM OPEN
+;
+; ################## OUTPUT SIGNAL ##################
+;        def_dout_lla_rne = 33                          ; [EXTERNAL OUTPUT] LL UP RET
+;        def_dout_llb_rne = 34                          ; [EXTERNAL OUTPUT] LL LOW RET
+;        def_dout_lpm1_rne = 40                         ; [EXTERNAL OUTPUT] LPM1 RET
+;        def_dout_lpm2_rne = 41                         ; [EXTERNAL OUTPUT] LPM2 RET
+;        def_dout_lpm3_rne = 42                         ; [EXTERNAL OUTPUT] LPM3 RET
+;        def_dout_lpm4_rne = 43                         ; [EXTERNAL OUTPUT] LPM4 RET
+;        def_dout_align_rne = 44                        ; [EXTERNAL OUTPUT] ALIGN RET
+        def_dout_vision = 48                           ; [EXTERNAL OUTPUT] VISION
+;
+;
+;================================================================================================
+;       AWC IO (49 ~ 68 PORT)
+;================================================================================================
+; ################## INPUT SIGNAL ##################
+;        def_din_awc_ch1_l = def_dinput_stx_idx+49         ; [AWC INPUT] AWC1 L
+;        def_din_awc_ch1_r = def_dinput_stx_idx+50         ; [AWC INPUT] AWC1 R
+;        def_din_awc_ch2_l = def_dinput_stx_idx+51         ; [AWC INPUT] AWC2 L
+;        def_din_awc_ch2_r = def_dinput_stx_idx+52         ; [AWC INPUT] AWC2 R
+;        def_din_awc_ch3_l = def_dinput_stx_idx+53         ; [AWC INPUT] AWC3 L
+;        def_din_awc_ch3_r = def_dinput_stx_idx+54         ; [AWC INPUT] AWC3 R
+;        def_din_awc_ch4_l = def_dinput_stx_idx+55         ; [AWC INPUT] AWC4 L
+;        def_din_awc_ch4_r = def_dinput_stx_idx+56         ; [AWC INPUT] AWC4 R
+;        def_din_awc_ch5_l = def_dinput_stx_idx+57         ; [AWC INPUT] AWC5 L
+;        def_din_awc_ch5_r = def_dinput_stx_idx+58         ; [AWC INPUT] AWC5 R
+;        def_din_awc_ch6_l = def_dinput_stx_idx+59         ; [AWC INPUT] AWC6 L
+;        def_din_awc_ch6_r = def_dinput_stx_idx+60         ; [AWC INPUT] AWC6 R
+;        def_din_awc_ch7_l = def_dinput_stx_idx+61         ; [AWC INPUT] AWC7 L
+;        def_din_awc_ch7_r = def_dinput_stx_idx+62         ; [AWC INPUT] AWC7 R
+;        def_din_awc_ch8_l = def_dinput_stx_idx+63         ; [AWC INPUT] AWC8 L
+;        def_din_awc_ch8_r = def_dinput_stx_idx+64         ; [AWC INPUT] AWC8 R
+;        def_din_awc_ch9_l = def_dinput_stx_idx+65         ; [AWC INPUT] AWC9 L
+;        def_din_awc_ch9_r = def_dinput_stx_idx+66         ; [AWC INPUT] AWC9 R
+;        def_din_awc_ch10_l = def_dinput_stx_idx+67        ; [AWC INPUT] AWC10 L
+;        def_din_awc_ch10_r = def_dinput_stx_idx+68        ; [AWC INPUT] AWC10 R
+;
+; ################## OUTPUT SIGNAL ##################
+        def_dout_awc_select1 = 49                      ; [AWC OUTPUT] AWC_MUX_SEL_1
+        def_dout_awc_select2 = 50                      ; [AWC OUTPUT] AWC_MUX_SEL_2
+        def_dout_awc_select3 = 51                      ; [AWC OUTPUT] AWC_MUX_SEL_3
+        def_dout_awc_select4 = 52                      ; [AWC OUTPUT] AWC_MUX_SEL_4
+        def_dout_awc_select5 = 53                      ; [AWC OUTPUT] AWC_MUX_SEL_5

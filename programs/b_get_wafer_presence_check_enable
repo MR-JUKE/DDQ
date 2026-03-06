@@ -1,0 +1,11 @@
+;************************************************************************************************
+; 1. 함수 이름 : b_get_wafer_presence_check_enable(p_o_is_enable)
+;
+; 2. 함수 설명 : 웨이퍼 유/무를 판단하기 위한 기능을 켰는지, 껐는지 FLAG 변수 값을 가져오는 Sub task 함수입니다.
+;              'enable_wafer_present_check()' 함수에 의해 'g_enable_wafer_present_check' 변수가 TRUE/FALSE로 값이 설정됩니다.
+;************************************************************************************************
+;
+.PARAM p_o_is_enable
+;
+;
+        p_o_is_enable = g_enable_wafer_present_check

@@ -1,0 +1,25 @@
+;************************************************************************************************
+; 1. 함수 이름 : check_safe_pose(p_o_is_safepose)
+;
+; 2. 함수 설명 : 현재 로봇의 위치를 확인하고 SAFE POSE 여부를 TRUE/FALSE로 반환합니다.
+;************************************************************************************************
+;
+.PARAM p_o_is_safepose
+.LOCAL l_curpos_axis_l,l_curpos_axis_u
+;
+;
+;       Call get_status_is_safepose(l_ret_is_safepose)
+;       IF (l_ret_is_safepose == FALSE) THEN
+;               p_o_errcode = def_err_is_safe_pose
+;               Return
+;       END
+;
+        l_curpos_axis_l = GetJ(#Here,def_axis_l)
+        l_curpos_axis_u = GetJ(#Here,def_axis_u)
+        IF ((l_curpos_axis_l>def_tolerance_safepose) OR (l_curpos_axis_u>def_tolerance_safepose)) THEN
+                Call set_status_safepose(FALSE)
+                p_o_is_safepose = FALSE
+                Return
+        END
+;
+        p_o_is_safepose = TRUE

@@ -1,0 +1,62 @@
+;************************************************************************************************
+; 1. Function : check_interlock_step(p_i_target_step,p_o_errcode)
+;
+; 2. Description : 입력된 STEP에 대해 INTERLOCK 조건을 확인하고 Error를 발생합니다.
+;
+; 3. Defined ErrorCode : -
+;************************************************************************************************
+;
+.PARAM p_i_target_step,p_o_errcode
+.LOCAL l_cur_step,l_pre_step,l_is_valid_step
+;
+;
+        p_o_errcode = def_err_none
+        Call get_robot_step(l_cur_step,l_pre_step)
+        l_is_valid_step = FALSE
+;
+        IF (p_i_target_step == def_move_home) THEN
+                l_is_valid_step = TRUE
+;
+        ELIF (p_i_target_step == def_move_safepose) THEN
+                l_is_valid_step = TRUE
+;
+        ELIF (p_i_target_step == def_move_waitpose) THEN
+                l_is_valid_step = (l_cur_step == def_move_waitpose) OR (l_cur_step == def_move_home) OR (l_cur_step == def_move_safepose) OR (l_cur_step == def_move_retract)
+;
+        ELIF (p_i_target_step == def_move_extend) THEN
+                l_is_valid_step = (l_cur_step == def_move_extend) OR (l_cur_step == def_move_waitpose) OR (l_cur_step == def_move_teach) OR (l_cur_step == def_move_up) OR (l_cur_step == def_move_down)
+;
+        ELIF (p_i_target_step == def_move_teach) THEN
+                l_is_valid_step = (l_cur_step == def_move_teach) OR (l_cur_step == def_move_extend) OR (l_cur_step == def_move_awc_extend) OR (l_cur_step == def_move_up) OR (l_cur_step == def_move_down)
+;
+        ELIF (p_i_target_step == def_move_up) THEN
+                l_is_valid_step = (l_cur_step == def_move_up) OR (l_cur_step == def_move_extend) OR (l_cur_step == def_move_awc_extend) OR (l_cur_step == def_move_teach) OR (l_cur_step == def_move_down) OR (l_cur_step == def_move_retract)
+;
+        ELIF (p_i_target_step == def_move_down) THEN
+                l_is_valid_step = (l_cur_step == def_move_down) OR (l_cur_step == def_move_extend) OR (l_cur_step == def_move_awc_extend) OR (l_cur_step == def_move_teach) OR (l_cur_step == def_move_up) OR (l_cur_step == def_move_retract)
+;
+        ELIF (p_i_target_step == def_move_retract) THEN
+                l_is_valid_step = (l_cur_step == def_move_retract) OR (l_cur_step == def_move_down) OR (l_cur_step == def_move_up)
+;
+        ELIF (p_i_target_step == def_move_awc_via) THEN
+                l_is_valid_step = (l_cur_step == def_move_waitpose)
+;
+        ELIF (p_i_target_step == def_move_awc_extend) THEN
+                l_is_valid_step = (l_cur_step == def_move_awc_via)
+;
+;        ELIF (p_i_target_step == def_move_awc_teach) THEN
+;
+;        ELIF (p_i_target_step == def_move_awc_down) THEN
+;
+;        ELIF (p_i_target_step == def_move_awc_retract) THEN
+;
+        ELSE
+                TPWrite 0,"[check_interlock_step] UNKNOWN STEP"
+                p_o_errcode = def_err_motion_step
+                Return
+        END
+;
+        IF (l_is_valid_step == FALSE) THEN
+                TPWrite 0,"[check_interlock_step] NOT APPROPRIATE STEP. TARGET: %d, CUR: %d",p_i_target_step,l_cur_step
+                p_o_errcode = def_err_motion_step
+        END

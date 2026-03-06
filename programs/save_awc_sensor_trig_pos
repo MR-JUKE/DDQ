@@ -1,0 +1,45 @@
+;************************************************************************************************
+; 1. 함수이름 : save_awc_sensor_trig_pos(p_i_stnno,p_i_selected_awc_sensor,#p_i_j_extend_rising_pos,#p_i_j_extend_falling_pos,#p_i_j_retract_rising_pos,#p_i_j_retract_falling_pos)
+;
+; 2. 함수 설명 : AWC TEACHING 진행 시 AWC SENSOR에 트리거 된 위치 값을 저장합니다.
+;************************************************************************************************
+;
+.PARAM p_i_stnno,p_i_master_arm,p_i_selected_awc_sensor,#p_i_j_extend_rising_pos,#p_i_j_extend_falling_pos,#p_i_j_retract_rising_pos,#p_i_j_retract_falling_pos
+.LOCAL l_idx
+;
+;
+;       ; 각 스테이션 별로 트리거 된 위치값을 넣기 위해 기준 주소 인덱스를 저장합니다.
+        l_idx = p_i_stnno*10
+        ;TPWrite 0,"TRIG POS(EX/RI): %f, %f, %f, %f",GetJ(#p_i_j_extend_rising_pos,def_axis_z),GetJ(#p_i_j_extend_rising_pos,def_axis_t),GetJ(#p_i_j_extend_rising_pos,def_axis_l),GetJ(#p_i_j_extend_rising_pos,def_axis_u)
+        ;TPWrite 0,"TRIG POS(EX/FA): %f, %f, %f, %f",GetJ(#p_i_j_extend_falling_pos,def_axis_z),GetJ(#p_i_j_extend_falling_pos,def_axis_t),GetJ(#p_i_j_extend_falling_pos,def_axis_l),GetJ(#p_i_j_extend_falling_pos,def_axis_u)
+        ;TPWrite 0,"TRIG POS(RE/RI): %f, %f, %f, %f",GetJ(#p_i_j_retract_rising_pos,def_axis_z),GetJ(#p_i_j_retract_rising_pos,def_axis_t),GetJ(#p_i_j_retract_rising_pos,def_axis_l),GetJ(#p_i_j_retract_rising_pos,def_axis_u)
+        ;TPWrite 0,"TRIG POS(RE/FA): %f, %f, %f, %f",GetJ(#p_i_j_retract_falling_pos,def_axis_z),GetJ(#p_i_j_retract_falling_pos,def_axis_t),GetJ(#p_i_j_retract_falling_pos,def_axis_l),GetJ(#p_i_j_retract_falling_pos,def_axis_u)
+;
+        IF (p_i_master_arm == def_master_arm_lower) THEN
+                IF (p_i_selected_awc_sensor == def_awc_select_left) THEN
+                        Point #j_awc_trig_pos_lowarm[l_idx + def_left_awc_trig_extend_rising] = #p_i_j_extend_rising_pos
+                        Point #j_awc_trig_pos_lowarm[l_idx + def_left_awc_trig_extend_falling] = #p_i_j_extend_falling_pos
+                        Point #j_awc_trig_pos_lowarm[l_idx + def_left_awc_trig_retract_rising] = #p_i_j_retract_rising_pos
+                        Point #j_awc_trig_pos_lowarm[l_idx + def_left_awc_trig_retract_falling] = #p_i_j_retract_falling_pos
+;
+                ELIF (p_i_selected_awc_sensor == def_awc_select_right) THEN
+                        Point #j_awc_trig_pos_lowarm[l_idx + def_right_awc_trig_extend_rising] = #p_i_j_extend_rising_pos
+                        Point #j_awc_trig_pos_lowarm[l_idx + def_right_awc_trig_extend_falling] = #p_i_j_extend_falling_pos
+                        Point #j_awc_trig_pos_lowarm[l_idx + def_right_awc_trig_retract_rising] = #p_i_j_retract_rising_pos
+                        Point #j_awc_trig_pos_lowarm[l_idx + def_right_awc_trig_retract_falling] = #p_i_j_retract_falling_pos
+                END
+;
+        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                IF (p_i_selected_awc_sensor == def_awc_select_left) THEN
+                        Point #j_awc_trig_pos_uparm[l_idx + def_left_awc_trig_extend_rising] = #p_i_j_extend_rising_pos
+                        Point #j_awc_trig_pos_uparm[l_idx + def_left_awc_trig_extend_falling] = #p_i_j_extend_falling_pos
+                        Point #j_awc_trig_pos_uparm[l_idx + def_left_awc_trig_retract_rising] = #p_i_j_retract_rising_pos
+                        Point #j_awc_trig_pos_uparm[l_idx + def_left_awc_trig_retract_falling] = #p_i_j_retract_falling_pos
+;
+                ELIF (p_i_selected_awc_sensor == def_awc_select_right) THEN
+                        Point #j_awc_trig_pos_uparm[l_idx + def_right_awc_trig_extend_rising] = #p_i_j_extend_rising_pos
+                        Point #j_awc_trig_pos_uparm[l_idx + def_right_awc_trig_extend_falling] = #p_i_j_extend_falling_pos
+                        Point #j_awc_trig_pos_uparm[l_idx + def_right_awc_trig_retract_rising] = #p_i_j_retract_rising_pos
+                        Point #j_awc_trig_pos_uparm[l_idx + def_right_awc_trig_retract_falling] = #p_i_j_retract_falling_pos
+                END
+        END

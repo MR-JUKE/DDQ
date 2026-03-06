@@ -1,0 +1,106 @@
+;************************************************************************************************
+; 1. 함수 이름 : apply_awc_correction(p_i_master_arm,p_i_correction_dx,p_i_correction_dy)
+;
+; 2. 함수 설명 : 입력된 dx, dy 값을 Joint 좌표 EXTEND 위치, TEACH 위치, DOWN 위치를 변환합니다.
+;               1. 알고 있는 변수
+;               wafer dx,dy 틀어짐 량 : dx = p_i_correction_dx ,dy = p_i_correction_dy
+;               safe 자세에서 TCP까지 거리 : l_dist_org_to_tch 
+;
+;               2. 구해야 할 변수
+;               T축 보정량 : l_result_dt
+;               Hand 보정거리 : l_result_r
+;************************************************************************************************
+.PARAM p_i_master_arm,p_i_correction_dx,p_i_correction_dy
+.LOCAL l_dist_org_to_tch
+.LOCAL l_result_dt,l_result_r
+;
+        l_dist_org_to_tch = 0
+        l_result_dt = 0
+        l_result_r = 0
+;
+;
+;================================================================================================
+;   MASTER ARM 에 따라 TEACHING 까지 거리 (TOOL LENGTH 포함)
+;================================================================================================
+.LOCAL l_ref_axis
+;
+        IF (p_i_master_arm == def_master_arm_lower) THEN
+                l_ref_axis = def_axis_l
+        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                l_ref_axis = def_axis_u
+        END
+;
+        l_dist_org_to_tch = GetJ(#j_point_teach,l_ref_axis)+def_robot_tool_len-def_robot_home_ofst
+;
+;
+;================================================================================================
+;   DX,DY로 인한 뻗는 양 구하기
+;   l_result_r = SQRT(l_dist_org_to_tch^2-dx^2) - dy =  SQRT((l_dist_org_to_tch^2)-((p_i_correction_dx)^2) - p_i_correction_dy
+;================================================================================================
+.LOCAL l_pow_dist_org2teach,l_pow_corr_dx,l_dist_r
+;
+        l_pow_dist_org2teach = (l_dist_org_to_tch)^2
+        l_pow_corr_dx = (p_i_correction_dx)^2
+        l_result_r = Sqrt(l_pow_dist_org2teach-l_pow_corr_dx)-p_i_correction_dy-def_robot_tool_len+def_robot_home_ofst
+        ;l_result_r = Sqrt((l_dist_org_to_tch*l_dist_org_to_tch)-(p_i_correction_dx*p_i_correction_dx))-p_i_correction_dy-def_robot_tool_len+def_robot_home_ofst
+        TPWrite 0,"Corr R Axis: %f",l_result_r
+;
+;
+;================================================================================================
+;   DX,DY로 인한 보정해야할 T 축 각도 구하기 
+;   d1 = 90 deg
+;   d2 = ACOS(p_i_correction_dx/l_dist_org_to_tch)
+;   l_result_dt = d1 - d2 = 90 - ACOS(p_i_correction_dx/l_dist_org_to_tch)
+;================================================================================================
+;        l_result_dt = 90-Acos(p_i_correction_dx/l_dist_org_to_tch)
+;        l_result_dt = l_result_dt+GetJ(#j_point_teach,def_axis_t)
+;        IF (l_result_dt<0) THEN
+;                l_result_dt = 360+l_result_dt
+;        ELIF (l_result_dt>360) THEN
+;                l_result_dt = l_result_dt-360
+;        END
+;        TPWrite 0,"Corr1 T Axis: %f",l_result_dt
+;
+;        l_result_dt = Asin(p_i_correction_dx/l_dist_org_to_tch)
+;        l_result_dt = l_result_dt+GetJ(#j_point_teach,def_axis_t)
+;        IF (l_result_dt<0) THEN
+;                l_result_dt = 360+l_result_dt
+;        ELIF (l_result_dt>360) THEN
+;                l_result_dt = l_result_dt-360
+;        END
+;        TPWrite 0,"Corr2 T Axis: %f",l_result_dt
+;
+        l_pow_dist_org2teach = (l_dist_org_to_tch)^2
+        l_pow_corr_dx = (p_i_correction_dx)^2
+        l_dist_r = Sqrt(l_pow_dist_org2teach-l_pow_corr_dx)
+;
+        l_result_dt = Atan2(p_i_correction_dx,l_dist_r)
+        l_result_dt = l_result_dt+GetJ(#j_point_teach,def_axis_t)
+        IF (l_result_dt<0) THEN
+                l_result_dt = 360+l_result_dt
+        ELIF (l_result_dt>360) THEN
+                l_result_dt = l_result_dt-360
+        END
+        TPWrite 0,"Corr T Axis: %f",l_result_dt
+;
+;
+;================================================================================================
+;   좌표 보정
+;================================================================================================
+        IF (p_i_master_arm == def_master_arm_lower) THEN
+                SetJ/2/3 #j_point_awc_extend,  l_result_dt, l_result_r
+                SetJ/2/3 #j_point_up,  l_result_dt, l_result_r
+                SetJ/2/3 #j_point_teach,  l_result_dt, l_result_r
+                SetJ/2/3 #j_point_down,  l_result_dt, l_result_r
+                ;SetJ/2/3 #j_point_awc_teach,  l_result_dt, l_result_r
+                ;SetJ/2/3 #j_point_awc_down,  l_result_dt, l_result_r
+                SetJ/2 #j_point_retract,  l_result_dt
+        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                SetJ/2/4 #j_point_awc_extend,  l_result_dt, l_result_r
+                SetJ/2/4 #j_point_up,  l_result_dt, l_result_r
+                SetJ/2/4 #j_point_teach,  l_result_dt, l_result_r
+                SetJ/2/4 #j_point_down,  l_result_dt, l_result_r
+                ;SetJ/2/3 #j_point_awc_teach,  l_result_dt, l_result_r
+                ;SetJ/2/3 #j_point_awc_down,  l_result_dt, l_result_r
+                SetJ/2 #j_point_retract,  l_result_dt
+        END

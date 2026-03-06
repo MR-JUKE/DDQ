@@ -1,0 +1,73 @@
+;************************************************************************************************
+; 1. 함수 이름 : calc_awc_offset(p_i_master_arm,p_i_awc_sensor_pos,#p_i_j_pos_trig1,#p_i_j_pos_trig2,p_o_awc_dx,p_o_awc_dy)
+;
+; 2. 함수 설명 : 입력된 두 개의 트리거 위치 Joint 좌표를 통해 dx, dy 값을 반환합니다.
+;************************************************************************************************
+.PARAM p_i_master_arm,p_i_awc_sensor_pos,#p_i_j_pos_trig1,#p_i_j_pos_trig2,p_o_awc_dx,p_o_awc_dy
+.LOCAL l_ref_axis,l_axis_r_trig1,l_axis_r_trig2
+.LOCAL l_result_dy
+;
+        p_o_awc_dx = 0
+        p_o_awc_dy = 0
+        l_axis_r_trig1 = 0
+        l_axis_r_trig2 = 0
+;
+;
+;================================================================================================
+;   MASTER ARM 에 따른 뻗은 거리 가져오기 
+;================================================================================================
+        IF (p_i_master_arm == def_master_arm_lower) THEN
+                l_ref_axis = def_axis_l
+        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                l_ref_axis = def_axis_u
+        END
+        l_axis_r_trig1 = GetJ(#p_i_j_pos_trig1,l_ref_axis)+def_robot_tool_len-def_robot_home_ofst
+        l_axis_r_trig2 = GetJ(#p_i_j_pos_trig2,l_ref_axis)+def_robot_tool_len-def_robot_home_ofst
+        TPWrite 0,"[calc_awc_offset] ARM TRIG POS 1: %f",l_axis_r_trig1
+        TPWrite 0,"[calc_awc_offset] ARM TRIG POS 2: %f",l_axis_r_trig2
+;
+;
+;================================================================================================
+;   * dx 값 계산
+;
+;   조건 : 
+;       - WAFER 반지름(def_rad_wafer) = 150mm
+;       - left 센서 기준으로 Dx 는 계산된 값에 "음수", Right 센서 기준으로 Dx는 계산된 값에 "양수" 적용
+;
+;   dx(l_result_dx) 구하는 공식 :
+;       - 트리거 된 위치 간 거리 = Abs(Arm 축 트리거 위치 1 - Arm 축 트리거 위치 2)
+;       - dx = Sqrt((WAFER 반지름)^2 - (트리거 된 위치 간 거리/2)^2)
+;================================================================================================
+.LOCAL l_dist_trig1_to_trig2,l_pow_trig_dist,l_pow_wafer_rad,l_result_dx,l_dx_sign
+;
+        l_dist_trig1_to_trig2 = Abs(l_axis_r_trig1-l_axis_r_trig2)
+        l_pow_trig_dist = ((l_dist_trig1_to_trig2)/2)^2
+        l_pow_wafer_rad = (def_rad_wafer)^2
+        TPWrite 0,"[calc_awc_offset] ABS TRIG 1 - TRIG 2: %f",l_dist_trig1_to_trig2
+        TPWrite 0,"[calc_awc_offset] POW TRIG 1 - TRIG 2: %f",l_pow_trig_dist
+        TPWrite 0,"[calc_awc_offset] POW Wafer Rad: %f",l_pow_wafer_rad
+
+;
+        l_result_dx = Sqrt(l_pow_wafer_rad-l_pow_trig_dist)
+        TPWrite 0,"[calc_awc_offset] DX: %f",l_result_dx
+;
+        IF (p_i_awc_sensor_pos == def_awc_sensor_left) THEN
+                l_dx_sign = -1
+        ELIF (p_i_awc_sensor_pos == def_awc_sensor_right) THEN
+                l_dx_sign = 1
+        END
+;
+        p_o_awc_dx = l_dx_sign*l_result_dx
+        TPWrite 0,"[calc_awc_offset] RESULT DX: %f",p_o_awc_dx
+;
+;
+;================================================================================================
+;   * dy(l_result_dy) 값 계산
+;
+;   공식 :
+;       dy = (Arm 축 트리거 위치 1 + Arm 축 트리거 위치 2)/2
+;================================================================================================
+        l_result_dy = (l_axis_r_trig1+l_axis_r_trig2)/2
+        TPWrite 0,"[calc_awc_offset] RESULT DY: %f",l_result_dy
+;
+        p_o_awc_dy = l_result_dy

@@ -1,0 +1,26 @@
+;************************************************************************************************
+; 1. 함수이름 : get_probe_touch_count(p_i_awc_sensor_pos,p_o_touch_count,p_o_errcode)
+;
+; 2. 함수 설명 : 터치 프로브 감지 횟수를 반환합니다.
+;************************************************************************************************
+;
+.PARAM p_i_awc_sensor_pos,p_o_touch_count,p_o_errcode
+.LOCAL l_awc_sensor_pos,l_touch_count,l_errcode
+;
+        l_awc_sensor_pos = p_i_awc_sensor_pos
+        l_touch_count = 0
+        l_errcode = def_err_none
+;
+        IF (l_awc_sensor_pos == def_awc_sensor_left) THEN
+                l_touch_count = TouchDataCount(def_touchprobe_1)
+                ;
+        ELIF (l_awc_sensor_pos == def_awc_sensor_right) THEN
+                l_touch_count = TouchDataCount(def_touchprobe_2)
+                ;
+        ELSE
+                TPWrite 0,"[get_probe_touch_count] ERR xx.x: UNKNOWN INDEX AWC SENSOR PARAM"
+                l_errcode = def_err_unknown_param
+        END
+;
+        p_o_touch_count = l_touch_count
+        p_o_errcode = l_errcode

@@ -1,0 +1,107 @@
+;************************************************************************************************
+; 1. 함수 이름 : def_errors()
+;
+; 2. 함수 설명 : ERROR 인덱스를 정의합니다.
+;************************************************************************************************
+;
+.Def def_err_none = 9100
+;
+.Def def_err_is_home = 9101
+.Def def_err_is_safe_pose = 9102
+;
+.Def def_err_command_param = 9110
+.Def def_err_station_num = 9111
+.Def def_err_slot_num = 9112
+.Def def_err_arm_mode = 9113
+.Def def_err_master_arm = 9114
+.Def def_err_unknown_param = 9115
+;
+.Def def_err_motion_step = 9120
+.Def def_err_motion_finish = 9121
+;
+.Def def_err_interlock = 9130
+.Def def_err_gate_open = 9131
+.Def def_err_fan = 9132
+.Def def_err_lift = 9133
+;
+.Def def_err_wafer_data = 9140
+.Def def_err_wafer_present = 9141
+.Def def_err_wafer_present_lower = 9142
+.Def def_err_wafer_present_upper = 9143
+.Def def_err_wafer_not_present_lower = 9144
+.Def def_err_wafer_not_present_upper = 9145
+;
+.Def def_err_use_station = 9150
+.Def def_err_use_awc = 9151
+.Def def_err_use_wcheck_station = 9152
+;
+.Def def_err_touch_probe_count = 9160
+.Def def_err_touch_probe_channel = 9161
+.Def def_err_calc_awc_sensor_pos = 9162
+.Def def_err_auto_comp_awc = 9163
+.Def def_err_awc_limit = 9164
+;
+.Def def_err_undefined = 9999
+;
+;.Def def_err_none = 9100
+;.Def def_err_is_home = 9101
+;.Def def_err_stnno_ng = 9102
+;.Def def_err_slotno_ng = 9103
+;.Def def_err_master_arm_ng = 9104
+;.Def def_err_command_match = 9109
+;.Def def_err_door_open = 9115
+;.Def def_err_stnno_condition = 9117
+;.Def def_err_slotno_condition = 9118
+;.Def def_err_arm_mode_ng = 9120
+;.Def def_err_motion_mode = 9121
+;.Def def_err_cmd_param = 9123
+;.Def def_err_step_inappro = 9127
+;.Def def_err_undefined = 9150
+;.Def def_err_homingfail = 9163
+;.Def def_err_solvalve_sen = 9166
+;.Def def_err_wfr_exst_low = 9170
+;.Def def_err_wfr_exst_up = 9171p
+;.Def def_err_wfr_none_low = 9172
+;.Def def_err_wfr_none_up = 9173
+;.Def def_err_dpick_x_ofst = 9205
+;.Def def_err_dpick_y_ofst = 9206
+;.Def def_err_dpick_z_ofst = 9207
+;.Def def_err_fan = 9211
+;.Def def_err_map_sensor = 9213
+;.Def def_err_map_protrus = 9214
+;.Def def_err_mapping_cal = 9215
+;.Def def_err_lift = 9216
+;.Def def_err_use_awc = 9217
+;.Def def_err_motion_finish = 9218
+;.Def def_err_use_station = 9220
+;
+;
+; *참고
+; ------------------------
+; DEFINE ROBOT ERROR CODE
+; ------------------------
+; cmd_pick: ERR_1.0 ~
+; cmd_place: ERR_2.0 ~
+; cmd_expick: ERR_3.0 ~
+; cmd_explace: ERR_4.0 ~
+; cmd_repick: ERR_5.0 ~
+; cmd_replace: ERR_6.0 ~
+; cmd_awc_teaching: ERR_7.0 ~
+; cmd_wcheck: ERR_8.0 ~
+; cmd_deltapick: ERR_9.0 ~
+;
+; goto_home: ERR_10.0 ~
+; goto_safepose: ERR_11.0 ~
+; goto_waitpose: ERR_12.0 ~
+; goto_extend: ERR_13.0 ~
+; goto_teach: ERR_14.0 ~
+; goto_up: ERR_15.0 ~
+; goto_down: ERR_16.0 ~
+; goto_retract: ERR_17.0 ~
+; goto_awc_extend: ERR_18.0 ~
+; goto_awc_retract: ERR_19.0 ~
+;
+; b_save_station: ERR_30.0 ~
+; set_robot_waypoints: ERR_31.0 ~
+; create_waypoints: ERR_32.0 ~
+; set_status_rq_present: ERR_33.0~

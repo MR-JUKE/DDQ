@@ -1,0 +1,36 @@
+;************************************************************************************************
+; 1. 함수 이름: set_status_rq_present(p_i_arm_mode,p_i_master_arm,p_i_arm_pos,p_i_z_pos)
+;
+; 2. 함수 설명: 
+;  - 로봇이 RQ PRESENT 상태 변수에 값을 Write 합니다.
+;  - UI에서 RQ PRESENT 통신 명령을 받을 시 아래 RQ PRESENT 상태 변수 값을 Read하여 상위에 Send합니다.
+;    "ui_rq_status_arm_pos" // 1: retract, 2: extend
+;    "ui_rq_status_z_pos"   // 1: down, 2: up
+;
+; 3. Defined Error Code: ERR_33.0 ~ 33.1
+;************************************************************************************************
+.PARAM p_i_arm_mode,p_i_master_arm,p_i_arm_pos,p_i_z_pos
+.LOCAL l_idx
+;
+;
+        IF ((p_i_arm_mode <> def_arm_mode_single) AND (p_i_arm_mode <> def_arm_mode_dual)) THEN
+                TPWrite 0,"[set_status_rq_present] ERR_33.0: INVALID ARM MODE. (ARM MODE: %d)",p_i_arm_mode
+                RaiseError -def_err_arm_mode
+        END
+;
+        IF ((p_i_master_arm <> def_master_arm_lower) AND (p_i_master_arm <> def_master_arm_upper)) THEN
+                TPWrite 0,"[set_status_rq_present] ERR_33.1: INVALID MASTER ARM. MASTER ARM: %d",p_i_master_arm
+                RaiseError -def_err_master_arm
+        END
+;
+        IF (p_i_arm_mode == def_arm_mode_dual) THEN
+                FOR l_idx = def_master_arm_lower TO def_max_master_arm
+                    ui_rq_status_arm_pos[l_idx] = p_i_arm_pos
+                    ui_rq_status_z_pos[l_idx] = p_i_z_pos
+                END
+;
+        ELIF (p_i_arm_mode == def_arm_mode_single) THEN
+                ui_rq_status_arm_pos[p_i_master_arm] = p_i_arm_pos
+                ui_rq_status_z_pos[p_i_master_arm] = p_i_z_pos
+;
+        END

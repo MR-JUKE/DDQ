@@ -1,0 +1,13 @@
+;************************************************************************************************
+; 1. 함수 이름 : measure_vision()
+;
+; 2. 함수 설명 : UI의 General Motion에서 'VISION' 명령어 실행 시 실행되는 TEST용 함수입니다.
+;
+; 3. Defined ErrorCode : -
+;************************************************************************************************
+;
+;
+        TPWrite 0,"[measure_vision] SET VISION SIG"
+        SetDO def_dout_vision
+        WaitTime 1
+        SetDO -def_dout_vision

@@ -1,0 +1,116 @@
+;************************************************************************************************
+; 1. 함수 이름 : b_check_motion_interlock()
+;
+; 2. 함수 설명 : 모션 중 인터락을 모니터링하고 모션을 일시정지하는 Sub task 함수입니다.
+;              EXTEND 동작 중 게이트가 닫히면 모션을 일시정지합니다.
+;              EXTEND,RETRACT 동작 중 명령(pick, place 등)에 따른 웨이퍼 유/무 상태가 적합하지 않으면 일시정지합니다.
+;************************************************************************************************
+;
+.LOCAL l_ret_cur_robot_cmd,l_ret_cur_robot_stnno,l_ret_cur_robot_slotno,l_ret_cur_robot_arm_mode,l_ret_cur_robot_master_arm
+.LOCAL l_cur_robot_cmd,l_cur_robot_stnno,l_cur_robot_slotno,l_cur_robot_arm_mode,l_cur_robot_master_arm
+.LOCAL l_area_min,l_area_max
+.LOCAL l_dist_arm_pos,l_ret_signal_ch1,l_ret_signal_ch2
+.LOCAL l_is_real_wafer_present,l_ret_is_vrtl_wafer_present,l_ret_is_real_wafer_present,l_ret_gate_signal
+.LOCAL l_is_error_now,l_is_brake_executed
+;
+;
+        l_is_error_now = FALSE
+;
+;================================================================================================
+;       WAFER CHECK INTERLOCK
+;================================================================================================
+        IF (IsMoving(1) == FALSE) THEN
+                l_is_brake_executed = FALSE
+                Return
+        END
+;
+;
+.LOCAL l_ret_is_motion_finish
+;
+        Call b_get_status_motion_finish(l_ret_is_motion_finish)
+        IF (l_ret_is_motion_finish == TRUE) THEN
+                l_is_brake_executed = FALSE
+                Return
+        END
+;
+;
+.LOCAL l_cur_robot_step,l_pre_robot_step
+;
+        Call b_get_robot_step(l_cur_robot_step,l_pre_robot_step)
+        IF ((l_cur_robot_step <> def_move_extend) AND (l_cur_robot_step <> def_move_awc_extend) AND (l_cur_robot_step <> def_move_awc_via) AND (l_cur_robot_step <> def_move_retract)) THEN
+                Return
+        END
+;
+;
+.LOCAL l_ret_wafer_present_on,l_ret_gate_on
+;
+        Call b_get_status_interlock(def_interlock_mask_present_sensor,l_ret_wafer_present_on)
+        Call b_get_status_interlock(def_interlock_mask_gate,l_ret_gate_on)
+        IF (l_ret_wafer_present_on == FALSE) AND (l_ret_gate_on == FALSE) THEN
+                Return
+        END
+;
+;
+.LOCAL l_ret_is_enable,l_is_wafer_present_check_on,l_is_gate_check_on
+;
+        Call b_get_wafer_presence_check_enable(l_ret_is_enable)
+        l_is_wafer_present_check_on = l_ret_is_enable
+;
+        Call b_get_gate_open_check_enable(l_ret_is_enable)
+        l_is_gate_check_on = l_ret_is_enable
+        IF (l_is_wafer_present_check_on == FALSE) AND (l_is_gate_check_on == FALSE) THEN
+                Return
+        END
+;
+        Call b_get_cur_robot_process(l_ret_cur_robot_cmd,l_ret_cur_robot_stnno,l_ret_cur_robot_slotno,l_ret_cur_robot_arm_mode,l_ret_cur_robot_master_arm)
+        l_cur_robot_cmd = l_ret_cur_robot_cmd
+        l_cur_robot_stnno = l_ret_cur_robot_stnno
+        l_cur_robot_slotno = l_ret_cur_robot_slotno
+        l_cur_robot_arm_mode = l_ret_cur_robot_arm_mode
+        l_cur_robot_master_arm = l_ret_cur_robot_master_arm
+;
+        IF (l_is_wafer_present_check_on == TRUE) THEN
+                l_area_min = ui_stn_wafer_detection_area_min[l_cur_robot_stnno]
+                l_area_max = ui_stn_wafer_detection_area_max[l_cur_robot_stnno]
+;
+                IF (l_cur_robot_master_arm == def_master_arm_lower) THEN
+                        l_dist_arm_pos = GetJ(#Here,def_axis_l)
+                ELIF (l_cur_robot_master_arm == def_master_arm_upper) THEN
+                        l_dist_arm_pos = GetJ(#Here,def_axis_u)
+                END
+;
+                IF ((l_area_min<l_dist_arm_pos) AND (l_dist_arm_pos<l_area_max)) THEN
+                        Call b_get_signal_wafer_detect_sensor(l_cur_robot_stnno,l_ret_signal_ch1,l_ret_signal_ch2)
+;
+                        ;l_is_real_wafer_present = ((l_ret_signal_ch1 == TRUE) OR (l_ret_signal_ch2 == TRUE))
+                        l_is_real_wafer_present = ((l_ret_signal_ch1 == FALSE) OR (l_ret_signal_ch2 == FALSE))
+                        Call b_set_real_wafer_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,l_is_real_wafer_present)
+;
+                        Call b_get_vrtl_wafer_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,l_ret_is_vrtl_wafer_present)
+                        Call b_get_real_wafer_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,l_ret_is_real_wafer_present)
+                        IF (l_ret_is_vrtl_wafer_present <> l_ret_is_real_wafer_present) THEN
+                                Call b_set_wafer_presence_mismatch(TRUE)
+                                IF ((l_cur_robot_step == def_move_extend) OR (l_cur_robot_step == def_move_awc_via) OR (l_cur_robot_step == def_move_awc_extend)) THEN
+                                        l_is_error_now = TRUE
+                                END
+                        END
+                END
+        END
+;
+        IF ((l_is_gate_check_on == TRUE) AND ((l_cur_robot_step == def_move_extend) OR (l_cur_robot_step == def_move_awc_via) OR (l_cur_robot_step == def_move_awc_extend))) THEN
+                Call b_get_gate_open_status(l_cur_robot_stnno,l_ret_gate_signal)
+                IF (l_ret_gate_signal == FALSE) THEN
+                        Call b_set_gate_open_error(TRUE)
+                        l_is_error_now = TRUE
+                END
+        END
+;
+        IF (l_is_error_now == FALSE) THEN
+                l_is_brake_executed = FALSE
+        ELSE
+                IF (l_is_brake_executed == FALSE) THEN
+                        TPWrite 0,"BRAKE"
+                        Brake
+                        l_is_brake_executed = TRUE
+                END
+        END

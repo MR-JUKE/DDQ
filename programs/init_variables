@@ -1,0 +1,107 @@
+;************************************************************************************************
+; 1. 함수 이름 : init_variables()
+;
+; 2. 함수 설명 : 전역 변수를 선언합니다.
+;************************************************************************************************
+;
+;
+; UI 공유 변수
+        rq_bl_stn_save = 0              ; TEACHING FLAG 변수           (UI: Write, ROBOT: Read/Write)
+        rq_n_stn_save = 0               ; TEACHING STATION 번호 정보    (UI: Write, ROBOT: Read)
+;
+        ui_cur_cmd = 0                  ; COMMAND 정보                 (UI: Write, ROBOT: Read)
+        ui_stnno = 0                    ; STATION NUMBER 정보          (UI: Write, ROBOT: Read)
+        ui_slotno = 0                   ; SLOT NUMBER                 (UI: Write, ROBOT: Read)
+        ui_cur_dual = 0                 ; ARM MODE 정보                (UI: Write, ROBOT: Read)
+        ui_cur_arm = 0                  ; MASTER ARM 정보              (UI: Write, ROBOT: Read)
+;
+        ui_is_safe_pose = FALSE         ; SAFEPOSE 상태 비트            (UI: Read, ROBOT: Write)
+        ui_is_home = FALSE              ; HOME 상태 비트                (UI: Read, ROBOT: Write)
+;
+;       ; LOWER ARM WAFER 유/무 변수 선언 여부 확인 후 없으면 선언
+        IF (Defined("ui_status_wafer_l") == FALSE) THEN
+                TPWrite 0,"UNDEFINED LOWER WAFER VAR"
+                ui_status_wafer_l = FALSE ;                           (UI: Read/Write, ROBOT: Read/Write)
+        END
+;
+;       ; UPPER ARM WAFER 유/무 변수 선언 여부 확인 후 없으면 선언
+        IF (Defined("ui_status_wafer_u") == FALSE) THEN
+                TPWrite 0,"UNDEFINED UPPER WAFER VAR"
+                ui_status_wafer_u = FALSE ;                           (UI: Read/Write, ROBOT: Read/Write)
+        END
+;
+;       ; Interlock 변수 'lock_mode'가 선언되어있는지 확인 후 선언되지 않았으면 'lock_mode' 선언.
+;       ; 'lock_mode' 변수는 인터락 값(binary)이 저장되는 변수. UI에서 인터락 조작 시 해당 변수 값이 변경됨.
+        IF (Defined("lock_mode") == FALSE) THEN
+                TPWrite 0,"UNDEFINED INTERLOCK VAR"
+                lock_mode = 0 ;                                       (UI: Read/Write, ROBOT: Read)
+        END
+;
+;
+; 로봇 명령 처리 변수 버퍼
+        g_cur_robot_cmd = 0
+        g_cur_robot_stnno = 0
+        g_cur_robot_slotno = 0
+        g_cur_robot_arm_mode = 0
+        g_cur_robot_master_arm = 0
+;
+        g_pre_robot_cmd = 0
+        g_pre_robot_stnno = 0
+        g_pre_robot_slotno = 0
+        g_pre_robot_arm_mode = 0
+        g_pre_robot_master_arm = 0
+;
+;
+; 모션 스텝 관리 변수
+        g_motion_current = 0
+        g_motion_previous = 0
+        g_is_motion_finish = TRUE
+
+; goto 모션 여부 변수
+        g_is_goto_motion = TRUE
+;
+;
+; Teach Mode 여부 판단 변수
+        g_pre_isteach = FALSE
+        g_cur_isteach = FALSE
+;
+;
+; Teach Mode 여부 판단 변수
+        g_pre_is_servo_on = FALSE
+        g_cur_is_servo_on = FALSE
+;
+;
+; step 관리
+        g_pre_robot_step = 0
+        g_cur_robot_step = 0
+;
+;
+; INTERLOCK STATUS 관리 변수
+        g_pre_interlock_mode = -1
+        g_cur_interlock_mode = -1
+;
+;
+; DELTA-PICK, EX-PICK, EX-PLACE 기능 Flag 변수
+        g_is_delta_pick = FALSE
+        g_is_expick = FALSE
+        g_is_explace = FALSE
+;
+;
+; Wafer 유/무 관리 변수
+        g_is_vrtl_wafer_present[1] = FALSE ; [1]: Lower arm
+        g_is_vrtl_wafer_present[2] = FALSE ; [2]: Upper arm
+        g_is_real_wafer_present[1] = FALSE ; [1]: Lower arm
+        g_is_real_wafer_present[2] = FALSE ; [2]: Upper arm
+;
+        ui_status_wafer_l = FALSE
+        ui_status_wafer_u = FALSE
+;
+;
+; Wafer Presence Check 관련 변수
+        g_enable_wafer_present_check = FALSE
+        g_is_wafer_presence_mismatch = FALSE
+;
+;
+; Gate Open Check 관련 변수
+        g_enable_gate_open_check = FALSE
+        g_set_gate_open_error = FALSE

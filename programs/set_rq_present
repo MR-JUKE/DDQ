@@ -1,0 +1,30 @@
+;************************************************************************************************
+; 1. 함수 이름 : set_rq_present(p_i_arm_pos_status,p_i_z_pos_status)
+; 2. 함수 설명 : 
+;  - UI 상위 통신 명령 중 'RQ PRESENT' 명령에 대한 상태를 변환해주기 위한 변수
+;
+; UI 변수
+;  - ui_arm_pos_status // 1: retract, 2: extend
+;  - ui_z_pos_status   // 1: down, 2: up
+;  
+; p_i_arm_pos_status :   ARM EXTEND/ RETRACT 상태 
+;  - .Def def_rq_present_retract = 1
+;  - .Def def_rq_present_extend = 2
+;
+; p_i_z_pos_status :     Z 축 UP/DOWN 상태 
+;  - .Def def_rq_present_none = 0
+;  - .Def def_rq_present_down = 1
+;  - .Def def_rq_present_up = 2
+;************************************************************************************************
+.PARAM p_i_arm_pos_status,p_i_z_pos_status
+;
+        IF (p_i_arm_pos_status == def_rq_present_retract) THEN        ; RETACT 상태일 경우 SAFEPOSE BIT 1
+                ui_is_safe_pose = 1
+                ;ui_is_safe_pose = Abs(TRUE)                              ; TRUE 반환 값 -1, ui_is_safe_pose = 1 이어야 함
+        ELIF (p_i_arm_pos_status == def_rq_present_extend) THEN       ; EXTEND 상태일 경우 SAFEPOSE BIT 0
+                ui_is_safe_pose = 0
+                ;ui_is_safe_pose = FALSE
+        END
+;
+        ui_arm_pos_status = p_i_arm_pos_status
+        ui_z_pos_status = p_i_z_pos_status

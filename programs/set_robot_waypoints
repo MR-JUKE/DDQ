@@ -1,0 +1,56 @@
+;************************************************************************************************
+; 1. 함수 이름: set_robot_waypoints(p_i_cur_cmd,p_i_stnno,p_i_slotno,p_i_arm_mode,p_i_master_arm)
+;
+; 2. 함수 설명: 입력받은 인자에 따른 로봇의 모션 포인트를 생성합니다.
+;
+; 3. Defined Error Code: ERR_31.0 ~ 31.1
+;************************************************************************************************
+.PARAM p_i_cur_cmd,p_i_stnno,p_i_slotno,p_i_arm_mode,p_i_master_arm
+.LOCAL l_max_stn_slotnum
+;
+;
+        l_max_stn_slotnum = ui_stn_param_slot_number[p_i_stnno] ; 'ui_stn_param_slot_number[]' : UI Station Param의 'SLOT NUM'에 입력된 값. Station의 최대 Slot 수.
+;
+;================================================================================================
+;     INTERLOCK
+;================================================================================================
+;       ; 입력된 목적지 station이 없으면 Error
+        IF (p_i_stnno == 0) THEN
+                TPWrite 0,"[set_robot_point] ERR_31.0: NO STATION PARAMETER."
+                RaiseError  -def_err_station_num ; station error
+;
+;       ; 입력된 slot 번호가 UI PARAM_1에 설정된 최대 slot 입력 값보다 클 경우 Error.
+        ELIF ((p_i_slotno>l_max_stn_slotnum) OR (p_i_slotno < 0)) THEN
+                TPWrite 0,"[set_robot_point] ERR_31.1: WRONG STATION SLOT PARAMETER."
+                RaiseError  -def_err_slot_num ; slot error
+        END
+;
+;
+;================================================================================================
+;     CREATE MOTION POINT
+;================================================================================================
+        Call create_waypoints(p_i_cur_cmd,p_i_stnno,p_i_slotno,p_i_arm_mode,p_i_master_arm)
+;
+;
+.LOCAL l_is_delta_pick_enabled,l_is_expick_enabled,l_is_explace_enabled,l_is_expickplace_enable
+;
+        Call get_delta_pick_mode_enable(l_is_delta_pick_enabled)
+;
+        IF (l_is_delta_pick_enabled == TRUE) THEN
+        .LOCAL l_offset_x,l_offset_y
+;
+                Call enable_delta_pick_mode(FALSE)
+                Call get_delta_pick_offset(l_offset_x,l_offset_y)
+                Call convert_waypoints_delta(p_i_master_arm,l_offset_x,l_offset_y)
+        END
+;
+        Call get_expick_mode_enable(l_is_expick_enabled)
+        Call get_explace_mode_enable(l_is_explace_enabled)
+        l_is_expickplace_enable = (l_is_expick_enabled == TRUE) OR (l_is_explace_enabled == TRUE)
+;
+        IF (l_is_expickplace_enable == TRUE) THEN
+                TPWrite 0,"[set_robot_waypoints] EX MODE ENABLE"
+                Call enable_expick_mode(FALSE)
+                Call enable_explace_mode(FALSE)
+                Call convert_waypoints_ex(p_i_cur_cmd,p_i_stnno,p_i_slotno,p_i_arm_mode,p_i_master_arm)
+        END

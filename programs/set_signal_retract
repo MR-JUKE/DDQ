@@ -1,0 +1,53 @@
+;************************************************************************************************
+; 1. 함수 이름 : set_signal_retract(p_i_stn_number, p_i_signal_option)
+; 2. 함수 설명 : RETRACT SIGNAL 제어 함수 
+;************************************************************************************************
+;
+.PARAM p_i_stn_number,p_i_signal_option
+.LOCAL l_stn_number,l_signal_option,l_index,l_is_defined,$l_str
+;
+;
+        l_stn_number = p_i_stn_number
+        l_signal_option = p_i_signal_option
+;
+        SWITCH l_signal_option
+                CASE def_signal_on_all :
+                FOR l_index = 1 TO max_stn_num
+                        MakeStr $l_str,"ui_stn_signal_output_retract[%d]",l_index
+                        l_is_defined = Defined($l_str)                  ; 변수가 선언되어 있는 STATION 만 SIGNAL ON
+                        IF (l_is_defined == TRUE) THEN
+                                SetDO ui_stn_signal_output_retract[l_index]
+                        END
+                END
+;
+                CASE def_signal_off_all :
+                FOR l_index = 1 TO max_stn_num
+                        MakeStr $l_str,"ui_stn_signal_output_retract[%d]",l_index
+                        l_is_defined = Defined($l_str)                  ; 변수가 선언되어 있는 STATION 만 SIGNAL ON
+                        IF (l_is_defined == TRUE) THEN
+                                SetDO -ui_stn_signal_output_retract[l_index]
+                        END
+                END
+;
+                CASE def_signal_on :
+                MakeStr $l_str,"ui_stn_signal_output_retract[%d]",l_stn_number
+                l_is_defined = Defined($l_str)                          ; 변수가 선언되어 있는 STATION 만 SIGNAL ON
+                IF (l_is_defined == TRUE) THEN
+                        SetDO ui_stn_signal_output_retract[l_stn_number]
+                ELSE
+                        TPWrite 0,"[set_signal_retract] NOT DECLARED 'ui_stn_signal_output_retract[%f]'",l_stn_number
+                END
+;
+                CASE def_signal_off :
+                MakeStr $l_str,"ui_stn_signal_output_retract[%d]",l_stn_number
+                l_is_defined = Defined($l_str)                          ; 변수가 선언되어 있는 STATION 만 SIGNAL ON
+                IF (l_is_defined == TRUE) THEN
+                        SetDO -ui_stn_signal_output_retract[l_stn_number]
+                ELSE
+                        TPWrite 0,"[set_signal_retract] NOT DECLARED 'ui_stn_signal_output_retract[%f]'",l_stn_number
+                END
+;
+                DEFAULT  :
+                TPWrite 0,"[set_signal_retract] NO CASE"
+        END
+

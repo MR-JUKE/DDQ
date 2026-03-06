@@ -1,0 +1,25 @@
+;************************************************************************************************
+; 1. 함수 이름 : check_gate_open()
+;
+; 2. 함수 설명 : STATION 게이트가 열렸는지 EXTERNAL INPUT 신호를 통해 확인합니다.
+;************************************************************************************************
+.PARAM p_i_stnno,p_o_is_gate_open
+.LOCAL l_dinput_num_door,l_sig_door,l_is_gate_open
+;
+;
+        l_is_gate_open = TRUE
+;
+        IF (g_set_interlock_gate == TRUE) THEN
+                l_dinput_num_door = ui_stn_signal_input_gate[p_i_stnno]
+                l_sig_door = Sig(1000+l_dinput_num_door)
+;
+                IF (l_dinput_num_door <> 0) THEN
+                        IF (l_sig_door <> FALSE) THEN
+                                TPWrite 0,"[check_gate_open] GATE CLOSE"
+                                l_is_gate_open = FALSE
+                                ;RaiseError  -d_err_door_open ; door signal OFF
+                        END
+                END
+        END
+;
+        p_o_is_gate_open = l_is_gate_open

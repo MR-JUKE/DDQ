@@ -1,0 +1,33 @@
+;************************************************************************************************
+; 1. 함수 이름 : set_awc_channel()
+;
+; 2. 함수 설명 : AWC SENSOR 채널을 설정합니다.
+;************************************************************************************************
+;
+.PARAM p_i_stn_number
+;
+;
+        SWITCH ui_stn_awc_channel[p_i_stn_number]
+                CASE 1 :
+                SetDO -def_dout_awc_select5,-def_dout_awc_select4,-def_dout_awc_select3,-def_dout_awc_select2,-def_dout_awc_select1 ; OFF/OFF/OFF/OFF/OFF
+                CASE 2 :
+                SetDO -def_dout_awc_select5,-def_dout_awc_select4,-def_dout_awc_select3,-def_dout_awc_select2,def_dout_awc_select1  ; OFF/OFF/OFF/OFF/ON
+                CASE 3 :
+                SetDO -def_dout_awc_select5,-def_dout_awc_select4,-def_dout_awc_select3,def_dout_awc_select2,-def_dout_awc_select1  ; OFF/OFF/OFF/ON/OFF
+                CASE 4 :
+                SetDO -def_dout_awc_select5,-def_dout_awc_select4,-def_dout_awc_select3,def_dout_awc_select2,def_dout_awc_select1   ; OFF/OFF/OFF/ON/ON
+                CASE 5 :
+                SetDO -def_dout_awc_select5,-def_dout_awc_select4,def_dout_awc_select3,-def_dout_awc_select2,-def_dout_awc_select1  ; OFF/OFF/ON/OFF/OFF
+                CASE 6 :
+                SetDO -def_dout_awc_select5,-def_dout_awc_select4,def_dout_awc_select3,-def_dout_awc_select2,def_dout_awc_select1   ; OFF/OFF/ON/OFF/ON
+                CASE 7 :
+                SetDO -def_dout_awc_select5,-def_dout_awc_select4,def_dout_awc_select3,def_dout_awc_select2,-def_dout_awc_select1   ; OFF/OFF/ON/ON/OFF
+                CASE 8 :
+                SetDO -def_dout_awc_select5,-def_dout_awc_select4,def_dout_awc_select3,def_dout_awc_select2,def_dout_awc_select1    ; OFF/OFF/ON/ON/ON
+                CASE 9 :
+                SetDO -def_dout_awc_select5,def_dout_awc_select4,-def_dout_awc_select3,-def_dout_awc_select2,-def_dout_awc_select1  ; OFF/ON/OFF/OFF/OFF
+                CASE 10 :
+                SetDO -def_dout_awc_select5,def_dout_awc_select4,-def_dout_awc_select3,-def_dout_awc_select2,def_dout_awc_select1   ; OFF/ON/OFF/OFF/ON
+                DEFAULT  :
+                SetDO -def_dout_awc_select5,-def_dout_awc_select4,-def_dout_awc_select3,-def_dout_awc_select2,-def_dout_awc_select1 ; OFF/OFF/OFF/OFF/OFF
+        END

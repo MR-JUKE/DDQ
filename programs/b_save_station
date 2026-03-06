@@ -1,0 +1,125 @@
+;************************************************************************************************
+; 1. 함수 이름: b_station_save()
+;
+; 2. 함수 설명: UI에서 Teaching 위치 저장
+;
+; 3. Defined Error Code: ERR_30.0 ~ 
+;************************************************************************************************
+.LOCAL l_stn_number,l_ret_errcode,l_ret_is_use_station
+.LOCAL $l_str,l_is_defined
+;
+        IF (rq_bl_stn_save <> FALSE) THEN                               ; UI 에서 SAVE 버튼 누를시 rq_bl_stn_save == 1 로 변경
+;================================================================================================
+;     INTERLOCK
+;================================================================================================
+                l_stn_number = rq_n_stn_save                            ; UI에서 'rq_n_stn_save' 변수에 목표 스테이션 번호를 저장함.
+                IF ((l_stn_number<1) OR (l_stn_number>max_stn_num)) THEN
+                        TPWrite 0,"[b_save_station] ERR_30.0: UNKNOWN STATION NUMBER: %d",l_stn_number
+                        rq_bl_stn_save = FALSE ; 함수 종료 시 'rq_bl_stn_save = FALSE' 로 해줘야함
+                        RaiseError  -def_err_station_num
+                        Return
+                END
+;
+;================================================================================================
+;       선언 안된 변수 선언 및 초기화
+;================================================================================================ 
+                MakeStr $l_str,"#j_stn_tch_ll[%d]",l_stn_number
+                l_is_defined = Defined($l_str)
+                IF (l_is_defined == FALSE) THEN
+                        Point #j_stn_tch_ll[l_stn_number] = Joint(0)
+                END
+;
+                MakeStr $l_str,"#j_stn_tch_lr[%d]",l_stn_number
+                l_is_defined = Defined($l_str)
+                IF (l_is_defined == FALSE) THEN
+                        Point #j_stn_tch_lr[l_stn_number] = Joint(0)
+                END
+;
+                MakeStr $l_str,"#j_stn_tch_ul[%d]",l_stn_number
+                l_is_defined = Defined($l_str)
+                IF (l_is_defined == FALSE) THEN
+                        Point #j_stn_tch_ul[l_stn_number] = Joint(0)
+                END
+;
+                MakeStr $l_str,"#j_stn_tch_ur[%d]",l_stn_number
+                l_is_defined = Defined($l_str)
+                IF (l_is_defined == FALSE) THEN
+                        Point #j_stn_tch_ur[l_stn_number] = Joint(0)
+                END
+;
+                MakeStr $l_str,"ui_stn_awc_enable[%d]",l_stn_number
+                l_is_defined = Defined($l_str)                          ; 변수가 선언되어 있는 STATION 만 SIGNAL ON
+                IF (l_is_defined == FALSE) THEN
+                        ui_stn_awc_enable[l_stn_number] = FALSE
+                END
+;
+                TPWrite 0,"[b_save_station] SAVE STATION PARAMS"
+;================================================================================================
+;       현재 저장한 STATION 티칭 위치를 과거 티칭 변수로 저장
+;================================================================================================
+;               ; 현재의 LOWER ARM 티칭 좌표를 과거의 티칭값으로 저장
+                Point #j_stn_tch_ll_prev[l_stn_number] = #j_stn_tch_ll[l_stn_number]
+                Point #j_stn_tch_lr_prev[l_stn_number] = #j_stn_tch_lr[l_stn_number]
+                Point #j_stn_tch_ul_prev[l_stn_number] = #j_stn_tch_ul[l_stn_number]
+                Point #j_stn_tch_ur_prev[l_stn_number] = #j_stn_tch_ur[l_stn_number]
+;
+;
+;================================================================================================
+;       LOWER ARM TEACHING JOINT 좌표 저장
+;================================================================================================
+                Point #j_stn_tch_ll[l_stn_number] = #ui_j_stn_tch_ll[l_stn_number]
+                SetJ/4 #j_stn_tch_ll[l_stn_number],  0
+                Point #j_stn_tch_lr[l_stn_number] = #ui_j_stn_tch_lr[l_stn_number]
+                SetJ/4 #j_stn_tch_lr[l_stn_number],  0
+;
+                Point #j_stn_tch_ul[l_stn_number] = #ui_j_stn_tch_ul[l_stn_number]
+                SetJ/3 #j_stn_tch_ul[l_stn_number],  0
+                Point #j_stn_tch_ur[l_stn_number] = #ui_j_stn_tch_ur[l_stn_number]
+                SetJ/3 #j_stn_tch_ur[l_stn_number],  0
+;
+;
+;================================================================================================
+;       AWC AUTO COMPENSATE
+;================================================================================================
+;               ; LOWER ARM AWC 센서 트리거 위치 자동 보상
+;                .LOCAL l_ret_is_taught,l_is_taught_awc_pos
+;                .LOCAL l_is_taught_left_awc_trig_pos,l_is_taught_right_awc_trig_pos
+;
+;                Call check_taught_awc_trig_pos(l_stn_number,def_master_arm_lower,l_ret_is_taught)
+;                l_is_taught_left_awc_trig_pos = l_ret_is_taught
+;                Call check_taught_awc_trig_pos(l_stn_number,def_master_arm_upper,l_ret_is_taught)
+;                l_is_taught_right_awc_trig_pos = l_ret_is_taught
+                ;Call check_taught_awc_pos(l_stn_number,l_ret_is_taught)
+                ;l_is_taught_awc_pos = l_ret_is_taught
+;
+;               ; LOWER ARM AWC 센서 트리거 위치 자동 보상
+;                IF (ui_stn_awc_enable[l_stn_number] <> FALSE) AND (l_is_taught_left_awc_trig_pos == TRUE) THEN
+;                        IF (GetJ(#j_stn_tch_ll[l_stn_number],def_axis_t) <> GetJ(#j_stn_tch_ll_prev[l_stn_number],def_axis_t)) THEN
+;                                TPWrite 0,"[b_save_station] AUTO COMPENSATE LOWER ARM AWC TRIG POS"
+;                                Call b_awc_auto_compensate(l_stn_number,def_master_arm_lower,GetJ(#j_stn_tch_ll[l_stn_number],def_axis_t),l_ret_errcode)
+;                                IF (l_ret_errcode <> def_err_none) THEN
+;                                        ;Point #j_stn_tch_ll[l_stn_number] = #j_stn_tch_ll_prev[l_stn_number]
+;                                        ;SetJ/4 #j_stn_tch_ll[l_stn_number],  0
+;                                        rq_bl_stn_save = FALSE
+;                                        ;RaiseError  -l_ret_errcode
+;                                END
+;                        END
+;                END
+;
+;               ; UPPER ARM AWC 센서 트리거 위치 자동 보상
+;                IF (ui_stn_awc_enable[l_stn_number] <> FALSE) AND (l_is_taught_right_awc_trig_pos == TRUE) THEN
+;                        IF (GetJ(#j_stn_tch_ul[l_stn_number],def_axis_t) <> GetJ(#j_stn_tch_ul_prev[l_stn_number],def_axis_t)) THEN
+;                                TPWrite 0,"[b_save_station] AUTO COMPENSATE UPPER ARM AWC TRIG POS"
+;                                Call b_awc_auto_compensate(l_stn_number,def_master_arm_upper,GetJ(#j_stn_tch_ul[l_stn_number],def_axis_t),l_ret_errcode)
+;                                IF (l_ret_errcode <> def_err_none) THEN
+;                                        ;Point #j_stn_tch_ul[l_stn_number] = #j_stn_tch_ul_prev[l_stn_number]
+;                                        ;SetJ/3 #j_stn_tch_ul[l_stn_number],  0
+;                                        rq_bl_stn_save = FALSE
+;                                        ;RaiseError  -l_ret_errcode
+;                                END
+;                        END
+;                END
+;
+;
+                rq_bl_stn_save = FALSE ; 함수 종료 시 'rq_bl_stn_save = FALSE' 로 해줘야함
+        END

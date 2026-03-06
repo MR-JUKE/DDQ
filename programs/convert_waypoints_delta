@@ -1,0 +1,133 @@
+;************************************************************************************************
+; 1. Function : convert_waypoints_delta(#p_i_j_cur_point,p_i_master_arm,p_i_tool_xy,p_i_dx,p_i_dy,#p_o_j_result_point)
+;
+; 2. Description : Delta pick 기능 관련 Motion Point를 생성하는 함수입니다. 입력받은 x, y 오프셋 값을 적용하여 좌표를 변환합니다.
+;
+; 3. Defined ErrorCode : -
+;************************************************************************************************
+;
+.PARAM p_i_master_arm,p_i_dx,p_i_dy
+.LOCAL l_cur_point_r,l_cur_point_t,l_cur_point_x,l_cur_point_y
+.LOCAL l_direction_forward,l_direction_side
+.LOCAL l_target_x,l_target_y
+.LOCAL l_a_dot_b,l_a_cross_b,l_lenght_a,l_lenght_b,l_theta_a,l_theta_b
+.LOCAL l_result_t,l_result_r
+;
+;
+;    IF (p_i_tool_xy == def_tool_x) THEN       ; TOOL 뻗는 방향이 X 일 경우
+        ;TPWrite -1,"[set_point_delta] DIRECTION FORWARD : X, SIDE : Y"
+        ;l_direction_forward = p_i_dx
+        ;l_direction_side = p_i_dy
+;    ELIF (p_i_tool_xy == def_tool_y) THEN     ; TOOL 뻗는 방향이 Y 일 경우
+        TPWrite -1, "[set_point_delta] DIRECTION FORWARD : Y, SIDE : X"
+        l_direction_forward = p_i_dy
+        l_direction_side = -p_i_dx
+;    END
+;
+;================================================================================================
+;   JOINT TO TRANS
+;================================================================================================
+        IF (p_i_master_arm == def_master_arm_lower) THEN
+                l_cur_point_r = GetJ(#j_point_extend,def_axis_l)+def_robot_tool_len-def_robot_home_ofst
+                l_cur_point_t = GetJ(#j_point_extend,def_axis_t)
+        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                l_cur_point_r = GetJ(#j_point_extend,def_axis_u)+def_robot_tool_len-def_robot_home_ofst
+                l_cur_point_t = GetJ(#j_point_extend,def_axis_t)+def_robot_master_slave_angle_diff
+        END
+;
+; T 축 좌표 변환 0 ~ 360도 로 표현 
+        IF (l_cur_point_t<0) THEN
+                l_cur_point_t = l_cur_point_t+360
+        ELIF (l_cur_point_t >= 360) THEN
+                l_cur_point_t = l_cur_point_t MOD 360
+        END
+;
+        l_cur_point_x = l_cur_point_r*Cos(l_cur_point_t)
+        l_cur_point_y = l_cur_point_r*Sin(l_cur_point_t)
+        TPWrite -1,"[set_point_delta] Current TRANS Point X = %f",l_cur_point_x
+        TPWrite -1,"[set_point_delta] Current TRANS Point Y = %f",l_cur_point_y
+        TPWrite -1,"[set_point_delta] Current TRANS Point T = %f",l_cur_point_t
+;
+;================================================================================================
+;   CALIBRATION TARGET POINT(TOOL)
+;   l_target_x = l_cur_point_x + l_direction_forward*Cos(l_cur_point_t) - l_direction_side*Sin(l_cur_point_t)
+;   l_target_y = l_cur_point_y + l_direction_forward*Sin(l_cur_point_t) + l_direction_side*Cos(l_cur_point_t)
+;================================================================================================
+        l_target_x = l_cur_point_x+l_direction_forward*Cos(l_cur_point_t)-l_direction_side*Sin(l_cur_point_t)
+        l_target_y = l_cur_point_y+l_direction_forward*Sin(l_cur_point_t)+l_direction_side*Cos(l_cur_point_t)
+        TPWrite -1,"[set_point_delta] Target TRANS Point X = %f",l_target_x
+        TPWrite -1,"[set_point_delta] Target TRANS Point Y = %f",l_target_y
+;
+;================================================================================================
+;   CALIBRATION CURRENT POINT - TARGETPOINT THETA
+;   
+;   A(l_cur_point_x, l_cur_point_y) 와 B(l_target_x, l_target_y)
+;   METHOD 1) 내적( dot product ) 이용
+;       A · B = l_cur_point_x * l_target_x + l_cur_point_y * l_target_y
+;       |A|   = Sqrt(l_cur_point_x * l_cur_point_x + l_cur_point_y * l_cur_point_y)
+;       |B|   = Sqrt(l_target_x * l_target_x + l_target_y * l_target_y)
+;       cosθ = (A · B) / ( |A| * |B| )
+;       θ    = acos((A · B) / ( |A| * |B| ))   
+;
+;   METHOD 2) 외적( cross product ) 이용
+;       A × B = l_cur_point_x * l_target_y - l_cur_point_y * l_target_x
+;       |A|   = Sqrt(l_cur_point_x * l_cur_point_x + l_cur_point_y * l_cur_point_y)
+;       |B|   = Sqrt(l_target_x * l_target_x + l_target_y * l_target_y)
+;       sinθ = |A × B| / ( |A| * |B| )
+;       θ    = asin(|A × B| / ( |A| * |B| ))
+;
+;   METHOD 3) 각각 A POINT와 B POINT 와의 각도의 차 
+;       A_theta = l_cur_point_t
+;       B_theta = Atan2(l_target_y,l_target_x)
+;       θ = B_theta - A_theta
+;================================================================================================
+; METHOD 1) 내적( dot product ) 이용
+;        l_a_dot_b = l_cur_point_x*l_target_x+l_cur_point_y*l_target_y
+;        l_lenght_a = Sqrt(l_cur_point_x*l_cur_point_x+l_cur_point_y*l_cur_point_y)
+;        l_lenght_b = Sqrt(l_target_x*l_target_x+l_target_y*l_target_y)
+;        l_result_t = Acos(l_a_dot_b/(l_lenght_a*l_lenght_b))
+;        TPWrite -1,"[set_point_delta] DOT PRODUCT THETA = %f",l_result_t
+;
+; METHOD 2) 외적( cross product ) 이용
+;        l_a_cross_b = l_cur_point_x*l_target_y-l_cur_point_y*l_target_x
+;        l_lenght_a = Sqrt(l_cur_point_x*l_cur_point_x+l_cur_point_y*l_cur_point_y)
+;        l_lenght_b = Sqrt(l_target_x*l_target_x+l_target_y*l_target_y)
+;        l_result_t = Asin(l_a_cross_b/(l_lenght_a*l_lenght_b))
+;        TPWrite -1,"[set_point_delta] CROSS PRODUCT THETA = %f",l_result_t
+;
+; METHOD 3) 각각 A POINT와 B POINT 와의 각도의 차 (π ~ -π)
+        l_theta_a = l_cur_point_t
+        l_theta_b = Atan2(l_target_y,l_target_x)
+        IF (l_theta_b<0) THEN
+                l_theta_b = l_theta_b+360
+        END
+        l_result_t = l_theta_b
+        TPWrite -1,"[set_point_delta] DIFF DEGREE B - A POINT = %f",l_result_t
+;================================================================================================
+;   TRANS TO JOINT
+;================================================================================================
+        l_result_r = Sqrt((l_target_x*l_target_x)+(l_target_y*l_target_y))
+        l_result_r = l_result_r-def_robot_tool_len+def_robot_home_ofst
+;
+        IF (p_i_master_arm == def_master_arm_lower) THEN
+                SetJ/2 #j_point_waitpose,  l_result_t
+                SetJ/2/3 #j_point_extend,  l_result_t, l_result_r
+                SetJ/2/3 #j_point_teach,  l_result_t, l_result_r
+                SetJ/2/3 #j_point_up,  l_result_t, l_result_r
+                SetJ/2/3 #j_point_down,  l_result_t, l_result_r
+                SetJ/2 #j_point_retract,  l_result_t
+;
+        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                SetJ/2 #j_point_waitpose,  l_result_t
+                SetJ/2/4 #j_point_extend,  l_result_t, l_result_r
+                SetJ/2/4 #j_point_teach,  l_result_t, l_result_r
+                SetJ/2/4 #j_point_up,  l_result_t, l_result_r
+                SetJ/2/4 #j_point_down,  l_result_t, l_result_r
+                SetJ/2 #j_point_retract,  l_result_t
+        END
+;
+;        IF (p_i_master_arm == def_master_arm_lower) THEN
+;                SetJ/2/3 #p_o_j_result_point,l_result_t,l_result_r
+;        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+;                SetJ/2/4 #p_o_j_result_point,l_result_t,l_result_r
+;        END

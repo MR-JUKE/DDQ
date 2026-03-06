@@ -1,0 +1,16 @@
+;************************************************************************************************
+; 1. 함수 이름 : get_pre_ui_cmd_var()
+; 2. 함수 설명 : 이전 UI 명령 변수 받아오기  
+;************************************************************************************************
+.PARAM p_o_prev_cmd,p_o_prev_stnno,p_o_prev_slotno,p_o_prev_arm
+;
+;
+        ;p_o_prev_cmd = g_prev_cmd
+        ;p_o_prev_stnno = g_prev_stnno
+        ;p_o_prev_slotno = g_prev_slotno
+        ;p_o_prev_master_arm = g_prev_master_arm
+;
+        ;g_prev_stnno = g_cur_stnno
+        ;g_prev_slotno = g_cur_slotno
+        ;g_prev_cmd = g_cur_cmd
+        ;g_prev_master_arm = g_cur_master_arm

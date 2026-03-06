@@ -1,0 +1,94 @@
+;************************************************************************************************
+; 1. 함수 이름: goto_waitpose()
+;
+; 2. 함수 설명: WAIT POSE 위치(STATION 진입 전 준비 위치)로 이동하는 함수입니다.
+;
+; 3. Defined Error Code: ERR_12.0 ~ 
+;************************************************************************************************
+;
+.LOCAL l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm
+.LOCAL l_cur_ui_cmd,l_cur_ui_stnno,l_cur_ui_slotno,l_cur_ui_arm_mode,l_cur_ui_master_arm
+;
+        Call get_cur_ui_cmd_var(l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm)
+        l_cur_ui_cmd = l_ret_cmd
+        l_cur_ui_stnno = l_ret_stnno
+        l_cur_ui_slotno = l_ret_slotno
+        l_cur_ui_arm_mode = l_ret_arm_mode
+        l_cur_ui_master_arm = l_ret_master_arm
+;
+;
+.LOCAL l_cur_robot_cmd,l_cur_robot_stnno,l_cur_robot_slotno,l_cur_robot_arm_mode,l_cur_robot_master_arm
+;
+        Call get_cur_robot_process(l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm)
+        l_cur_robot_cmd = l_ret_cmd
+        l_cur_robot_stnno = l_ret_stnno
+        l_cur_robot_slotno = l_ret_slotno
+        l_cur_robot_arm_mode = l_ret_arm_mode
+        l_cur_robot_master_arm = l_ret_master_arm
+;
+;
+.LOCAL l_is_same_stnno,l_ret_is_safepose
+.LOCAL l_ret_cur_step,l_ret_pre_step
+.LOCAL l_ret_errcode
+.LOCAL l_cmd,l_stnno,l_slotno,l_arm_mode,l_master_arm
+;
+        l_is_same_stnno = (l_cur_ui_stnno == l_cur_robot_stnno)
+;
+        Call check_safe_pose(l_ret_is_safepose)
+        Call get_robot_step(l_ret_cur_step,l_ret_pre_step)
+;
+        IF (l_is_same_stnno == TRUE) AND (l_ret_cur_step == def_move_extend) AND (l_ret_is_safepose <> TRUE) THEN
+                l_cmd = l_cur_robot_cmd
+                l_stnno = l_cur_robot_stnno
+                l_slotno = l_cur_robot_slotno
+                l_arm_mode = l_cur_robot_arm_mode
+                l_master_arm = l_cur_robot_master_arm
+                TPWrite 0,"-- [WAIT POSE]"
+                ;
+        ELSE
+                IF (l_ret_is_safepose <> TRUE) THEN
+                        TPWrite 0,"[goto_waitpose] NOT IN SAFEPOSE. RETRACT."
+                        Call goto_safepose()
+                END
+;
+                l_cmd = l_cur_ui_cmd
+                l_stnno = l_cur_ui_stnno
+                l_slotno = l_cur_ui_slotno
+                l_arm_mode = l_cur_ui_arm_mode
+                l_master_arm = l_cur_ui_master_arm
+
+                TPWrite 0,"-- [STATION %d-%d WAIT POSE]",l_stnno,l_slotno
+                Call check_interlocks(l_stnno,def_move_waitpose,l_ret_errcode)
+                IF (l_ret_errcode <> def_err_none) THEN
+                        TPWrite 0,"[goto_waitpose] ERR_12.0: INTERLOCK ERROR"
+                        RaiseError  -l_ret_errcode
+                END
+;
+                Call set_robot_process(l_cmd,l_stnno,l_slotno,l_arm_mode,l_master_arm)
+;
+                IF (l_cmd == def_cmd_expick) OR (l_cmd == def_cmd_repick) THEN
+                        Call enable_expick_mode(TRUE)
+                ELIF  (l_cmd == def_cmd_explace) OR (l_cmd == def_cmd_replace) THEN
+                        Call enable_explace_mode(TRUE)
+                END
+                Call set_robot_waypoints(l_cmd,l_stnno,l_slotno,l_arm_mode,l_master_arm)
+        END
+;
+;
+;================================================================================================
+;     모션 시작
+;================================================================================================
+        Call goto_position(l_stnno,def_move_waitpose,def_motion_mode_goto)
+;
+;
+;================================================================================================
+;     RETRACT, RQ PRESENT, SAFEPOSE 상태 설정
+;================================================================================================
+        IF (l_cmd == def_cmd_pick) THEN
+                Call set_status_rq_present(l_arm_mode,l_master_arm,def_rq_present_retract,def_rq_present_down)
+        ELIF (l_cmd == def_cmd_place) THEN
+                Call set_status_rq_present(l_arm_mode,l_master_arm,def_rq_present_retract,def_rq_present_up)
+        END
+;
+        Call set_status_safepose(TRUE)
+        Call set_signal_retract(l_stnno,def_signal_on)

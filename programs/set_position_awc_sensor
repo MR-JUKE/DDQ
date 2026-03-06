@@ -1,0 +1,43 @@
+;************************************************************************************************
+; 1. 함수이름 : set_position_awc_sensor(p_i_stn_number,p_i_master_arm,p_i_awc_select,p_i_awc_xpos_extend,p_i_awc_ypos_extend,p_i_awc_xpos_retract,p_i_awc_ypos_retract)
+;
+; 2. 함수 설명 : 입력 받은 X, Y값을 AWC 센서 위치로 저장합니다.
+;************************************************************************************************
+;
+.PARAM p_i_stn_number,p_i_master_arm,p_i_awc_select,p_i_awc_xpos_extend,p_i_awc_ypos_extend,p_i_awc_xpos_retract,p_i_awc_ypos_retract
+.LOCAL l_idx
+;
+;
+        l_idx = p_i_stn_number*10
+;       ; EXTEND 동작 시 LOWER ARM에 트리거된 좌/우측 AWC 센서 위치 저장
+        IF (p_i_master_arm == def_master_arm_lower) THEN
+                IF (p_i_awc_select == def_awc_sensor_left) THEN
+                        Point t_awc_pos_lowarm[l_idx+def_left_awc_pos_extend] = Trans(p_i_awc_xpos_extend,p_i_awc_ypos_extend,0,0)
+                        Point t_awc_pos_lowarm[l_idx+def_left_awc_pos_retract] = Trans(p_i_awc_xpos_retract,p_i_awc_ypos_retract,0,0)
+                        TPWrite 0,"[set_position_awc_sensor] SET LEFT AWC SENSOR(LOWER ARM EXTEND) POS X: %f, Y: %f",p_i_awc_xpos_extend,p_i_awc_ypos_extend
+                        TPWrite 0,"[set_position_awc_sensor] SET LEFT AWC SENSOR(LOWER ARM RETRACT) POS X: %f, Y: %f",p_i_awc_xpos_retract,p_i_awc_ypos_retract
+;
+                ELIF (p_i_awc_select == def_awc_sensor_right) THEN
+                        Point t_awc_pos_lowarm[l_idx+def_right_awc_pos_extend] = Trans(p_i_awc_xpos_extend,p_i_awc_ypos_extend,0,0)
+                        Point t_awc_pos_lowarm[l_idx+def_right_awc_pos_retract] = Trans(p_i_awc_xpos_retract,p_i_awc_ypos_retract,0,0)
+                        TPWrite 0,"[set_position_awc_sensor] SET RIGHT AWC SENSOR(LOWER ARM EXTEND) POS X: %f, Y: %f",p_i_awc_xpos_extend,p_i_awc_ypos_extend
+                        TPWrite 0,"[set_position_awc_sensor] SET RIGHT AWC SENSOR(LOWER ARM RETRACT) POS X: %f, Y: %f",p_i_awc_xpos_retract,p_i_awc_ypos_retract
+;
+                END
+;
+;       ; EXTEND 동작 시 UPPER ARM에 트리거된 좌/우측 AWC 센서 위치 저장
+        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                IF (p_i_awc_select == def_awc_sensor_left) THEN
+                        Point t_awc_pos_uparm[l_idx+def_left_awc_pos_extend] = Trans(p_i_awc_xpos_extend,p_i_awc_ypos_extend,0,0)
+                        Point t_awc_pos_uparm[l_idx+def_left_awc_pos_retract] = Trans(p_i_awc_xpos_retract,p_i_awc_ypos_retract,0,0)
+                        TPWrite 0,"[set_position_awc_sensor] SET LEFT AWC SENSOR(UPPER ARM EXTEND) POS X: %f, Y: %f",p_i_awc_xpos_extend,p_i_awc_ypos_extend
+                        TPWrite 0,"[set_position_awc_sensor] SET LEFT AWC SENSOR(UPPER ARM RETRACT) POS X: %f, Y: %f",p_i_awc_xpos_retract,p_i_awc_ypos_retract
+;
+                ELIF (p_i_awc_select == def_awc_sensor_right) THEN
+                        Point t_awc_pos_uparm[l_idx+def_right_awc_pos_extend] = Trans(p_i_awc_xpos_extend,p_i_awc_ypos_extend,0,0)
+                        Point t_awc_pos_uparm[l_idx+def_right_awc_pos_retract] = Trans(p_i_awc_xpos_retract,p_i_awc_ypos_retract,0,0)
+                        TPWrite 0,"[set_position_awc_sensor] SET RIGHT AWC SENSOR(UPPER ARM EXTEND) POS X: %f, Y: %f",p_i_awc_xpos_extend,p_i_awc_ypos_extend
+                        TPWrite 0,"[set_position_awc_sensor] SET RIGHT AWC SENSOR(UPPER ARM RETRACT) POS X: %f, Y: %f",p_i_awc_xpos_retract,p_i_awc_ypos_retract
+;
+                END
+        END

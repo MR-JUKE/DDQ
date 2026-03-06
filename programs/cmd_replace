@@ -1,0 +1,127 @@
+;************************************************************************************************
+; 1. 함수 이름: cmd_replace()
+;
+; 2. 함수 설명: EX-PLACE 동작 수행 후 WAIT POSE로 복귀하는 동작을 수행하는 함수입니다.
+;
+; 3. Defined Error Code: ERR_6.0 ~ 6.2
+;************************************************************************************************
+;
+.LOCAL l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm
+.LOCAL l_cur_ui_cmd,l_cur_ui_stnno,l_cur_ui_slotno,l_cur_ui_arm_mode,l_cur_ui_master_arm
+.LOCAL l_ret_errcode,l_err_count
+;
+;
+        ui_cur_cmd = def_cmd_replace
+        Call get_cur_ui_cmd_var(l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm)
+        TPWrite 0,"======== STATION %d-%d RE-PLACE ========",l_ret_stnno,l_ret_slotno
+        l_cur_ui_cmd = l_ret_cmd
+        l_cur_ui_stnno = l_ret_stnno
+        l_cur_ui_slotno = l_ret_slotno
+        l_cur_ui_arm_mode = l_ret_arm_mode
+        l_cur_ui_master_arm = l_ret_master_arm
+;
+        IF (l_cur_ui_cmd <> def_cmd_replace) THEN
+                TPWrite 0,"[cmd_replace] ERR_6.0: WRONG COMMAND: %d",l_cur_ui_cmd
+                RaiseError -def_err_command_param
+                Return
+        END
+;
+        Call get_cur_robot_process(l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm)
+        IF (l_ret_cmd <> def_cmd_explace) THEN
+                TPWrite 0,"[cmd_repick] ERR_5.1: INAPPROPRIATE COMMAND: %d",l_ret_cmd
+                RaiseError -def_err_command_param
+                Return
+        END
+;
+;******** Wafer Present, Wafer Slide, AWC, Door 기능 활성화/비활성화 여부를 저장한다.
+.LOCAL l_ret_is_on
+.LOCAL l_is_wafer_present_interlock_on,l_is_enabled_wfr_present_param,l_is_wafer_present_on
+;
+        Call get_status_interlock(def_interlock_mask_present_sensor,l_ret_is_on)
+        l_is_wafer_present_interlock_on = l_ret_is_on
+        l_is_enabled_wfr_present_param = ui_stn_wafer_detection_enable[l_cur_ui_stnno]; Station Param 중 Wafer 감지 ON/OFF 여부 변수 'ui_stn_wafer_detection_enable[]' 값 저장.
+;
+        l_is_wafer_present_on = (l_is_wafer_present_interlock_on == TRUE) AND (l_is_enabled_wfr_present_param <> FALSE)
+;
+;
+        Call set_seq_start(TRUE)
+;
+        WHILE (TRUE == g_flag_seq_start) DO
+                IF (g_pre_seqno <> g_cur_seqno) THEN
+                        g_pre_seqno = g_cur_seqno
+                        l_err_count = 0
+                END
+;
+;*******************************************************************************************************************
+; SEQ 1: 저장된 로봇 처리 변수 값을 읽어 저장합니다.
+;*******************************************************************************************************************
+                IF (g_cur_seqno == 1) THEN
+;
+                .LOCAL l_cur_robot_cmd,l_cur_robot_stnno,l_cur_robot_slotno,l_cur_robot_arm_mode,l_cur_robot_master_arm
+;
+                        TPWrite 0,"SEQUENCE START"
+                        Call get_cur_robot_process(l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm)
+                        l_cur_robot_cmd = l_ret_cmd
+                        l_cur_robot_stnno = l_ret_stnno
+                        l_cur_robot_slotno = l_ret_slotno
+                        l_cur_robot_arm_mode = l_ret_arm_mode
+                        l_cur_robot_master_arm = l_ret_master_arm
+;
+                        g_cur_seqno = 10
+;
+;*******************************************************************************************************************
+; SEQ 10: WAFER PRESENT 인터락 여부에 따라 기능 활성화
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 10) THEN
+                        Call set_vrtl_wafer_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,FALSE)
+;
+                        IF (l_is_wafer_present_on == TRUE) THEN
+                                TPWrite 0,"[ENABLE WAFER PRESENCE CHECK]"
+                                Call enable_wafer_present_check(TRUE)
+                        END
+;
+                        g_cur_seqno = 20
+;
+;*******************************************************************************************************************
+; SEQ 20: RETRACT 위치로 이동합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 20) THEN
+;
+                .LOCAL l_ret_is_mismatch
+;
+                        TPWrite 0,"[GOTO RETRACT]"
+                        Call goto_position(l_cur_robot_stnno,def_move_retract,def_motion_mode_cmd)
+                        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_down)
+                        Call set_signal_retract(l_cur_robot_stnno,def_signal_on)
+                        Call set_status_safepose(TRUE)
+;
+                        Call get_wafer_presence_mismatch(l_ret_is_mismatch)
+                        Call enable_wafer_present_check(FALSE)
+;
+                        IF (l_ret_is_mismatch == TRUE) THEN
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_replace] ERR_6.1: WAFER PRESENCE MISMATCH"
+                                RaiseError  -def_err_wafer_present
+                        END
+;
+                        Call set_real_wafer_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,FALSE)
+;
+                        g_cur_seqno = 9999
+;
+;*******************************************************************************************************************
+; SEQ 999: SEQUENCE를 끝냅니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 9999) THEN
+                        TPWrite 0,"SEQUENCE END"
+                        Call set_seq_start(FALSE)
+                END
+        END
+;
+;
+.LOCAL l_ret_is_fan_error
+;
+        Call check_fan_error(l_ret_is_fan_error)
+        IF (l_ret_is_fan_error <> FALSE) THEN
+                TPWrite 0,"[cmd_replace] ERR_6.2: FAN ERROR"
+                RaiseError  -def_err_fan
+        END

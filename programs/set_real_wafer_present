@@ -1,0 +1,34 @@
+;************************************************************************************************
+; 1. 함수 이름 : set_real_wafer_present(p_i_arm_mode,p_i_master_arm,p_i_is_real_wafer_present)
+;
+; 2. 함수 설명 : AWC 센서를 통해 실제로 감지된 로봇의 웨이퍼 유/무 상태를 설정하는 함수입니다.
+;************************************************************************************************
+;
+.PARAM p_i_arm_mode,p_i_master_arm,p_i_is_real_wafer_present
+.LOCAL l_idx_master_arm
+;
+;
+        IF (p_i_arm_mode == def_arm_mode_single) THEN
+                g_is_real_wafer_present[p_i_master_arm] = p_i_is_real_wafer_present
+;
+        ELIF (p_i_arm_mode == def_arm_mode_dual) THEN
+                g_is_real_wafer_present[def_master_arm_lower] = p_i_is_real_wafer_present
+                g_is_real_wafer_present[def_master_arm_upper] = p_i_is_real_wafer_present
+;
+        ELSE
+                TPWrite 0,"[set_real_wafer_present] ERR: INVALID ARM MODE. ARM MODE: %d",p_i_arm_mode
+                RaiseError -def_err_arm_mode
+        END
+;
+;
+        IF (p_i_arm_mode == def_arm_mode_dual) THEN
+                ui_status_wafer_l = Abs(g_is_real_wafer_present[def_master_arm_lower])
+                ui_status_wafer_u = Abs(g_is_real_wafer_present[def_master_arm_upper])
+;
+        ELIF (p_i_master_arm == def_master_arm_lower) THEN
+                ui_status_wafer_l = Abs(g_is_real_wafer_present[def_master_arm_lower])
+;
+        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                ui_status_wafer_u = Abs(g_is_real_wafer_present[def_master_arm_upper])
+;
+        END

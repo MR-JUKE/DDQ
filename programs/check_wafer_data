@@ -1,0 +1,41 @@
+;************************************************************************************************
+; 1. 함수 이름 : check_wafer_data(p_i_cmd,p_i_arm_mode,p_i_master_arm,p_o_errcode)
+;
+; 2. 함수 설명 : 입력 받은 명령 인자(p_i_cmd)에 따라 웨이퍼 유/무를 확인하고 문제가 있으면 에러 코드를 반환합니다.
+;************************************************************************************************
+;
+.PARAM p_i_cmd,p_i_arm_mode,p_i_master_arm,p_o_errcode
+.LOCAL l_ret_is_on,l_is_wafer_data_interlock,l_ret_is_wafer_present,l_is_wafer_present
+.LOCAL l_is_pick_error,l_is_place_error
+;
+;
+        p_o_errcode = def_err_none
+;
+        Call get_status_interlock(def_interlock_mask_wafer_data_check,l_ret_is_on)
+        l_is_wafer_data_interlock = l_ret_is_on
+;
+        IF (l_is_wafer_data_interlock == FALSE) THEN
+                Return
+        END
+;
+        IF ((p_i_master_arm <> def_master_arm_lower) AND (p_i_master_arm <> def_master_arm_upper)) THEN
+                TPWrite 0,"[check_wafer_data] UNKNOWN MASTER ARM"
+                p_o_errcode = def_err_master_arm
+                Return
+        END
+;
+        Call get_real_wafer_present(p_i_arm_mode,p_i_master_arm,l_ret_is_wafer_present)
+        l_is_wafer_present = l_ret_is_wafer_present
+;
+        l_is_pick_error = (((p_i_cmd == def_cmd_pick) OR (p_i_cmd == def_cmd_expick) OR (p_i_cmd == def_cmd_delta_pick)) AND (l_is_wafer_present == TRUE))
+        l_is_place_error = (((p_i_cmd == def_cmd_place) OR (p_i_cmd == def_cmd_explace)) AND (l_is_wafer_present == FALSE))
+;
+        IF ((l_is_pick_error == TRUE) OR (l_is_place_error == TRUE)) THEN
+                IF (p_i_cmd == def_cmd_pick) THEN
+                        TPWrite 0,"[check_wafer_data] INAPPROPRIATE WAFER DATA IN 'PICK' COMMAND"
+                ELSE
+                        TPWrite 0,"[check_wafer_data] INAPPROPRIATE WAFER DATA IN 'PLACE' COMMAND"
+                END
+;
+                p_o_errcode = def_err_wafer_data
+        END

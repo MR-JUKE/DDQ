@@ -1,0 +1,209 @@
+;************************************************************************************************
+; 1. 함수 이름: b_awc_auto_compensate(p_i_stn_number,p_i_master_arm,p_i_theta)
+;
+; 2. 함수 설명:  
+; - AWC TEACHING이 되어 있는 STATION을 재 티칭 할 경우, TEACH 좌표를 확인하여 AWC 트리거 위치를 자동 보상하는 기능 함수입니다.
+;   이때 센서와 로봇이 뻗는 좌표와의 거리가 150mm (WAFER 의 반지름)이 되는 지점을 찾는 식
+;   근의 공식을 통하여 뻗는 양(R)을 구함. 근이 2개 무조건 나와야함
+;************************************************************************************************
+.PARAM p_i_stn_number,p_i_master_arm,p_i_theta,p_o_errcode
+.LOCAL l_ret_pos_awc_left_ext_x,l_ret_pos_awc_left_ext_y,l_ret_pos_awc_left_ret_x,l_ret_pos_awc_left_ret_y
+.LOCAL l_awc_new_left_ext_dx,l_awc_new_left_ext_dy,l_awc_new_left_ret_dx,l_awc_new_left_ret_dy
+.LOCAL l_ret_pos_awc_right_ext_x,l_ret_pos_awc_right_ext_y,l_ret_pos_awc_right_ret_x,l_ret_pos_awc_right_ret_y
+.LOCAL l_awc_new_right_ext_dx,l_awc_new_right_ext_dy,l_awc_new_right_ret_dx,l_awc_new_right_ret_dy
+.LOCAL l_idx
+;
+;
+        p_o_errcode = def_err_none
+        l_idx = p_i_stn_number*10
+;
+        IF (p_i_master_arm == def_master_arm_lower) THEN
+                p_i_theta = p_i_theta
+        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                p_i_theta = p_i_theta-def_robot_master_slave_angle_diff
+        END
+;
+;================================================================================================
+; AWC LEFT SENSOR 트리거 위치 보상
+; - AWC SENSOR LEFT = (L_X,L_Y), 원점으로부터 임의각도 (Θ) 로 뻗는 양 (R) = ([R*COSΘ],[R*SINΘ])
+; - AWC SENSOR LEFT 와의 뻗는 좌표 거리 구하는 공식 :
+;       SQRT((R*COSΘ - L_X)^2 + (R*SINΘ - L_Y)^2) = 150
+;       (R*COSΘ - L_X)^2 + (R*SINΘ - L_Y)^2 = 22500
+;       (1)*R^2 - 2(L_X*COSΘ + L_Y*SINΘ)* R + (L_X^2 + L_Y - 22500) = 0
+;       a = 1, b = - 2(L_X*COSΘ + L_Y*SINΘ) , c = (L_X^2 + L_Y^2 - 22500)
+;================================================================================================ 
+        IF ((ui_stn_awc_select[p_i_stn_number] == def_awc_select_both) OR (ui_stn_awc_select[p_i_stn_number] == def_awc_select_left)) THEN
+                l_ret_pos_awc_left_ext_x = 0
+                l_ret_pos_awc_left_ext_y = 0
+                l_ret_pos_awc_left_ret_x = 0
+                l_ret_pos_awc_left_ret_y = 0
+                l_awc_new_left_ext_dx = 0
+                l_awc_new_left_ext_dy = 0
+                l_awc_new_left_ret_dx = 0
+                l_awc_new_left_ret_dy = 0
+;
+                Call get_position_awc_sensor(p_i_stn_number,p_i_master_arm,def_awc_select_left,l_ret_pos_awc_left_ext_x,l_ret_pos_awc_left_ext_y,l_ret_pos_awc_left_ret_x,l_ret_pos_awc_left_ret_y)
+;
+;================================================================================================
+; EXTEND 모션의 LEFT AWC SENSOR TRIGGER 위치 변경
+;================================================================================================
+        .LOCAL l_linear_equation_a,l_linear_equation_b,l_linear_equation_c
+        .LOCAL l_ret_roots_count,l_ret_roots1,l_ret_roots2
+;
+                l_linear_equation_a = 0
+                l_linear_equation_b = 0
+                l_linear_equation_c = 0
+                l_ret_roots_count = 0
+                l_ret_roots1 = 0
+                l_ret_roots2 = 0
+;
+;               근의 공식
+                l_linear_equation_a = 1
+                l_linear_equation_b = -2*(l_ret_pos_awc_left_ext_x*Cos(p_i_theta)+l_ret_pos_awc_left_ext_y*Sin(p_i_theta))
+                l_linear_equation_c = (l_ret_pos_awc_left_ext_x*l_ret_pos_awc_left_ext_x)+(l_ret_pos_awc_left_ext_y*l_ret_pos_awc_left_ext_y)-22500
+                Call calc_quadratic_formula(l_linear_equation_a,l_linear_equation_b,l_linear_equation_c,l_ret_roots_count,l_ret_roots1,l_ret_roots2)
+;
+                TPWrite 0,"[b_awc_auto_compensate] COMPENSATE EXTEND LEFT AWC TRIG POS. root1 = %f ,root2 = %f",l_ret_roots1,l_ret_roots2
+                IF (l_ret_roots_count == 2) THEN
+                        IF (p_i_master_arm == def_master_arm_lower) THEN
+                                SetJ/2/3 #j_awc_trig_pos_lowarm[l_idx+def_left_awc_trig_extend_rising],  p_i_theta, (l_ret_roots2-def_robot_tool_len+def_robot_home_ofst)
+                                SetJ/2/3 #j_awc_trig_pos_lowarm[l_idx+def_left_awc_trig_extend_falling],  p_i_theta, (l_ret_roots1-def_robot_tool_len+def_robot_home_ofst)
+                                ;l_awc_new_left_ext_dx = Sqrt((150*150)-((l_ret_roots1-l_ret_roots2)/2)*((l_ret_roots1-l_ret_roots2)/2))
+                                ;l_awc_new_left_ext_dy = (l_ret_roots1+l_ret_roots2)/2
+                        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                                SetJ/2/4 #j_awc_trig_pos_uparm[l_idx+def_left_awc_trig_extend_rising],  p_i_theta, (l_ret_roots2-def_robot_tool_len+def_robot_home_ofst)
+                                SetJ/2/4 #j_awc_trig_pos_uparm[l_idx+def_left_awc_trig_extend_falling],  p_i_theta, (l_ret_roots1-def_robot_tool_len+def_robot_home_ofst)
+                        END
+                ELSE
+                        TPWrite 0,"[b_awc_auto_compensate] COMPENSATE EXTEND LEFT AWC TRIG POS IS NOT POSSIBLE."
+                        p_o_errcode = def_err_auto_comp_awc
+                        Return
+                END
+;
+;================================================================================================
+; RETRACT 모션의 LEFT AWC SENSOR TRIGGER 위치 변경
+;================================================================================================
+                l_linear_equation_a = 0
+                l_linear_equation_b = 0
+                l_linear_equation_c = 0
+                l_ret_roots_count = 0
+                l_ret_roots1 = 0
+                l_ret_roots2 = 0
+;               근의 공식
+                l_linear_equation_a = 1
+                l_linear_equation_b = -2*(l_ret_pos_awc_left_ret_x*Cos(p_i_theta)+l_ret_pos_awc_left_ret_y*Sin(p_i_theta))
+                l_linear_equation_c = (l_ret_pos_awc_left_ret_x*l_ret_pos_awc_left_ret_x)+(l_ret_pos_awc_left_ret_y*l_ret_pos_awc_left_ret_y)-22500
+                Call calc_quadratic_formula(l_linear_equation_a,l_linear_equation_b,l_linear_equation_c,l_ret_roots_count,l_ret_roots1,l_ret_roots2)
+                TPWrite 0,"[b_awc_auto_compensate] COMPENSATE RETRACT LEFT AWC TRIG POS. root1 = %f ,root2 = %f",l_ret_roots1,l_ret_roots2
+;
+                IF (l_ret_roots_count == 2) THEN
+                        IF (p_i_master_arm == def_master_arm_lower) THEN
+                                SetJ/2/3 #j_awc_trig_pos_lowarm[l_idx+def_left_awc_trig_retract_rising],  p_i_theta, (l_ret_roots1-def_robot_tool_len+def_robot_home_ofst)
+                                SetJ/2/3 #j_awc_trig_pos_lowarm[l_idx+def_left_awc_trig_retract_falling],  p_i_theta, (l_ret_roots2-def_robot_tool_len+def_robot_home_ofst)
+                                ;l_awc_new_left_ext_dx = Sqrt((150*150)-((l_ret_roots1-l_ret_roots2)/2)*((l_ret_roots1-l_ret_roots2)/2))
+                                ;l_awc_new_left_ext_dy = (l_ret_roots1+l_ret_roots2)/2
+                        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                                SetJ/2/4 #j_awc_trig_pos_uparm[l_idx+def_left_awc_trig_retract_rising],  p_i_theta, (l_ret_roots1-def_robot_tool_len+def_robot_home_ofst)
+                                SetJ/2/4 #j_awc_trig_pos_uparm[l_idx+def_left_awc_trig_retract_falling],  p_i_theta, (l_ret_roots2-def_robot_tool_len+def_robot_home_ofst)
+                        END
+                        ; l_awc_new_left_ret_dx = Sqrt((150*150)-((l_ret_roots1-l_ret_roots2)/2)*((l_ret_roots1-l_ret_roots2)/2))
+                        ; l_awc_new_left_ret_dy = (l_ret_roots1+l_ret_roots2)/2
+                ELSE
+                        TPWrite 0,"[b_awc_auto_compensate] COMPENSATE RETRACT LEFT AWC TRIG POS IS NOT POSSIBLE."
+                        p_o_errcode = def_err_auto_comp_awc
+                        Return
+                END
+        ELSE
+                TPWrite 0,"[b_awc_auto_compensate] The left AWC sensor is not set."
+        END
+;
+;================================================================================================
+; AWC RIGHT SENSOR 트리거 위치 보상
+; - AWC SENSOR RIGHT = (R_X,R_Y), 원점으로부터 임의각도 (Θ) 로 뻗는 양 (R) = ([R*COSΘ],[R*SINΘ])
+; - AWC SENSOR RIGHT 와의 뻗는 좌표 거리 구하는 공식 :
+;       SQRT((R*COSΘ - R_X)^2 + (R*SINΘ - R_Y)^2) = 150
+;       (R*COSΘ - R_X)^2 + (R*SINΘ - R_Y)^2 = 22500
+;       (1)*R^2 - 2(R_X*COSΘ + R_Y*SINΘ)* R + (R_X^2 + R_Y - 22500) = 0
+;       a = 1, b = - 2(R_X*COSΘ + R_Y*SINΘ) , c = (R_X^2 + R_Y^2 - 22500)
+;================================================================================================
+        IF ((ui_stn_awc_select[p_i_stn_number] == def_awc_select_both) OR (ui_stn_awc_select[p_i_stn_number] == def_awc_select_right)) THEN
+                l_ret_pos_awc_right_ext_x = 0
+                l_ret_pos_awc_right_ext_y = 0
+                l_ret_pos_awc_right_ret_x = 0
+                l_ret_pos_awc_right_ret_y = 0
+                l_awc_new_right_ext_dx = 0
+                l_awc_new_right_ext_dy = 0
+                l_awc_new_right_ret_dx = 0
+                l_awc_new_right_ret_dy = 0
+;
+                Call get_position_awc_sensor(p_i_stn_number,p_i_master_arm,def_awc_select_right,l_ret_pos_awc_right_ext_x,l_ret_pos_awc_right_ext_y,l_ret_pos_awc_right_ret_x,l_ret_pos_awc_right_ret_y)
+;
+;================================================================================================
+; EXTEND 모션의 RIGHT AWC SENSOR TRIGGER 위치 변경
+;================================================================================================
+                l_linear_equation_a = 0
+                l_linear_equation_b = 0
+                l_linear_equation_c = 0
+                l_ret_roots_count = 0
+                l_ret_roots1 = 0
+                l_ret_roots2 = 0
+;
+;               근의 공식
+                l_linear_equation_a = 1
+                l_linear_equation_b = -2*(l_ret_pos_awc_right_ext_x*Cos(p_i_theta)+l_ret_pos_awc_right_ext_y*Sin(p_i_theta))
+                l_linear_equation_c = (l_ret_pos_awc_right_ext_x*l_ret_pos_awc_right_ext_x)+(l_ret_pos_awc_right_ext_y*l_ret_pos_awc_right_ext_y)-22500
+                Call calc_quadratic_formula(l_linear_equation_a,l_linear_equation_b,l_linear_equation_c,l_ret_roots_count,l_ret_roots1,l_ret_roots2)
+                TPWrite 0,"[b_awc_auto_compensate] COMPENSATE EXTEND RIGHT AWC TRIG POS. root1 = %f ,root2 = %f",l_ret_roots1,l_ret_roots2
+;                
+                IF (l_ret_roots_count == 2) THEN
+                        IF (p_i_master_arm == def_master_arm_lower) THEN
+                                SetJ/2/3 #j_awc_trig_pos_lowarm[l_idx+def_right_awc_trig_extend_rising],  p_i_theta, (l_ret_roots2-def_robot_tool_len+def_robot_home_ofst)
+                                SetJ/2/3 #j_awc_trig_pos_lowarm[l_idx+def_right_awc_trig_extend_falling],  p_i_theta, (l_ret_roots1-def_robot_tool_len+def_robot_home_ofst)
+                                ;l_awc_new_left_ext_dx = Sqrt((150*150)-((l_ret_roots1-l_ret_roots2)/2)*((l_ret_roots1-l_ret_roots2)/2))
+                                ;l_awc_new_left_ext_dy = (l_ret_roots1+l_ret_roots2)/2
+                        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                                SetJ/2/4 #j_awc_trig_pos_uparm[l_idx+def_right_awc_trig_extend_rising],  p_i_theta, (l_ret_roots2-def_robot_tool_len+def_robot_home_ofst)
+                                SetJ/2/4 #j_awc_trig_pos_uparm[l_idx+def_right_awc_trig_extend_falling],  p_i_theta, (l_ret_roots1-def_robot_tool_len+def_robot_home_ofst)
+                        END
+                ELSE
+                        TPWrite 0,"[b_awc_auto_compensate] COMPENSATE EXTEND RIGHT AWC TRIG POS IS NOT POSSIBLE."
+                        p_o_errcode = def_err_auto_comp_awc
+                        Return
+                END
+;
+;================================================================================================
+; RETRACT 모션의 RIGHT AWC SENSOR TRIGGER 위치 변경
+;================================================================================================
+                l_linear_equation_a = 0
+                l_linear_equation_b = 0
+                l_linear_equation_c = 0
+                l_ret_roots_count = 0
+                l_ret_roots1 = 0
+                l_ret_roots2 = 0
+;
+;               ; 근의 공식
+                l_linear_equation_a = 1
+                l_linear_equation_b = -2*(l_ret_pos_awc_right_ret_x*Cos(p_i_theta)+l_ret_pos_awc_right_ret_y*Sin(p_i_theta))
+                l_linear_equation_c = (l_ret_pos_awc_right_ret_x*l_ret_pos_awc_right_ret_x)+(l_ret_pos_awc_right_ret_y*l_ret_pos_awc_right_ret_y)-22500
+                Call calc_quadratic_formula(l_linear_equation_a,l_linear_equation_b,l_linear_equation_c,l_ret_roots_count,l_ret_roots1,l_ret_roots2)
+                TPWrite 0,"[b_awc_auto_compensate] COMPENSATE RETRACT RIGHT AWC TRIG POS. root1 = %f ,root2 = %f",l_ret_roots1,l_ret_roots2
+;
+                IF (l_ret_roots_count == 2) THEN
+                        IF (p_i_master_arm == def_master_arm_lower) THEN
+                                SetJ/2/3 #j_awc_trig_pos_lowarm[l_idx+def_right_awc_trig_retract_rising],  p_i_theta, (l_ret_roots1-def_robot_tool_len+def_robot_home_ofst)
+                                SetJ/2/3 #j_awc_trig_pos_lowarm[l_idx+def_right_awc_trig_retract_falling],  p_i_theta, (l_ret_roots2-def_robot_tool_len+def_robot_home_ofst)
+                                ;l_awc_new_left_ext_dx = Sqrt((150*150)-((l_ret_roots1-l_ret_roots2)/2)*((l_ret_roots1-l_ret_roots2)/2))
+                                ;l_awc_new_left_ext_dy = (l_ret_roots1+l_ret_roots2)/2
+                        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                                SetJ/2/4 #j_awc_trig_pos_uparm[l_idx+def_right_awc_trig_retract_rising],  p_i_theta, (l_ret_roots1-def_robot_tool_len+def_robot_home_ofst)
+                                SetJ/2/4 #j_awc_trig_pos_uparm[l_idx+def_right_awc_trig_retract_falling],  p_i_theta, (l_ret_roots2-def_robot_tool_len+def_robot_home_ofst)
+                        END
+                ELSE
+                        TPWrite 0,"[b_awc_auto_compensate] COMPENSATE EXTEND RIGHT AWC TRIG POS IS NOT POSSIBLE."
+                        p_o_errcode = def_err_auto_comp_awc
+                        Return
+                END
+        ELSE
+                TPWrite 0,"[b_awc_auto_compensate] The right AWC sensor is not set."
+        END
+;

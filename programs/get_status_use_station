@@ -1,0 +1,18 @@
+;************************************************************************************************
+; 1. 함수 이름 : get_status_use_station(p_i_stnno,p_o_use_station)
+; 2. 함수 설명 : 입력받은 스테이션이 사용 설정된 스테이션인지 여부를 반환합니다.
+;************************************************************************************************
+;
+.PARAM p_i_stnno,p_o_use_station
+.LOCAL $l_str,l_is_defined
+;
+;
+;       ; 스테이션 사용 설정 변수 'ui_stn_param_enable'가 정의되어있는지 확인하고 정의되어있지 않으면 FALSE 반환
+        MakeStr $l_str,"ui_stn_param_enable[%f]",p_i_stnno
+        l_is_defined = Defined($l_str)
+        IF (l_is_defined == FALSE) THEN
+                p_o_use_station = FALSE
+                Return
+        END
+;
+        p_o_use_station = ui_stn_param_enable[p_i_stnno]

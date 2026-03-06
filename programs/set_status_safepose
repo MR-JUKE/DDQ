@@ -1,0 +1,16 @@
+;************************************************************************************************
+; 1. 함수 이름 : set_status_safepose(p_i_is_safe_pose)
+; 2. 함수 설명 : 
+;   - safe pose 완료 상태 관리 함수
+;   - TP UI에서 'SAFE POSE'버튼 램프는 'ui_is_safe_pose' 변수 값을 반영. 1이면 램프 ON(SAFE POSE 상태), 0이면 램프 OFF(SAFE POSE 아님)
+;************************************************************************************************
+;
+.PARAM p_i_is_safe_pose
+;
+; TP UI에서 'SAFE POSE'버튼 램프는 'ui_is_safe_pose' 변수 값을 반영. 1이면 램프 ON(SAFE POSE 상태), 0이면 램프 OFF(SAFE POSE 아님)
+        ;ui_is_safe_pose = Abs(p_i_is_safe_pose)
+        IF (p_i_is_safe_pose == TRUE) THEN
+                ui_is_safe_pose = 1
+        ELSE
+                ui_is_safe_pose = 0
+        END

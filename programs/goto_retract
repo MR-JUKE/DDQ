@@ -1,0 +1,50 @@
+;************************************************************************************************
+; 1. 함수 이름: goto_retract()
+;
+; 2. 함수 설명: RETRACT 위치(STATION에서 후퇴)로 이동하는 함수입니다.
+;
+; 3. Defined Error Code: ERR_17.0
+;************************************************************************************************
+        TPWrite 0,"-- [RETRACT]"
+;
+.LOCAL l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm
+.LOCAL l_cur_robot_cmd,l_cur_robot_stnno,l_cur_robot_slotno,l_cur_robot_arm_mode,l_cur_robot_master_arm
+.LOCAL l_ret_cur_step,l_ret_pre_step
+.LOCAL l_ret_errcode,l_ret_is_on,l_ret_is_mismatch,l_is_wafer_slide_on,l_is_awc_on,l_use_awc
+;
+;
+        Call get_cur_robot_process(l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm) ; 함수 인자에 현재 로봇이 처리 중인 명령을 반환받는다.
+        l_cur_robot_cmd = l_ret_cmd
+        l_cur_robot_stnno = l_ret_stnno
+        l_cur_robot_slotno = l_ret_slotno
+        l_cur_robot_arm_mode = l_ret_arm_mode
+        l_cur_robot_master_arm = l_ret_master_arm
+;
+;
+;================================================================================================
+;     인터락 확인
+;================================================================================================
+        Call check_interlocks(l_cur_robot_stnno,def_move_retract,l_ret_errcode)
+        IF (l_ret_errcode <> def_err_none) THEN
+                TPWrite 0,"[goto_retract] ERR_17.0: INTERLOCK ERROR"
+                RaiseError  -l_ret_errcode
+        END
+;
+;
+;================================================================================================
+;     모션 시작
+;================================================================================================
+        Call goto_position(l_cur_robot_stnno,def_move_retract,def_motion_mode_goto)
+;
+;
+;================================================================================================
+;     RETRACT, RQ PRESENT, SAFEPOSE 상태 설정
+;================================================================================================
+        IF (l_cur_robot_cmd == def_cmd_pick) THEN
+                Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_up)
+        ELIF (l_cur_robot_cmd == def_cmd_place) THEN
+                Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_down)
+        END
+;
+        Call set_status_safepose(TRUE)
+        Call set_signal_retract(l_cur_robot_stnno,def_signal_on)

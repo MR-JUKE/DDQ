@@ -1,0 +1,130 @@
+;************************************************************************************************
+; 1. 함수 이름 : set_robot_speed(p_i_stn_number,p_i_move_point,p_i_motion_mode)
+;
+; 2. 함수 설명 : 모션 별 속도, ACC, DEC , ACCURACY 설정
+;************************************************************************************************
+;
+.PARAM p_i_stn_number,p_i_move_point,p_i_motion_mode
+.LOCAL l_speed_rate,l_use_smooth,l_ret_is_wafer_present,l_ret_is_ahs_on
+;
+;
+;
+;================================================================================================
+; SET ACCURACY
+;================================================================================================
+;        IF (ui_setup_speed_cp[p_i_move_point] <> FALSE) THEN
+;                Accuracy ui_setup_speed_accuracy[p_i_move_point]
+;        END
+;
+;
+;================================================================================================
+; SET SMOOTH
+;================================================================================================
+        IF (ui_setup_speed_smooth[p_i_move_point] <> FALSE) THEN
+                Smooth  TRUE, ui_setup_speed_jerk[p_i_move_point]
+        ELSE
+                Smooth  FALSE, 0
+        END
+;
+;
+;================================================================================================
+; SET SPEED, ACCEL, DECEL
+;================================================================================================
+.LOCAL l_robot_main_speed,l_speed_coef,l_robot_accel_time,l_robot_decel_time
+.LOCAL l_ret_cur_step,l_ret_pre_step
+.LOCAL l_ret_is_goto_motion
+;
+        Call get_robot_step(l_ret_cur_step,l_ret_pre_step)
+;
+        ; default speed coefficient
+        l_speed_coef = ui_speed_coef_high
+        IF (ui_main_speed_idx == def_ui_main_speed_low) THEN
+                l_speed_coef = ui_speed_coef_low
+        ELIF (ui_main_speed_idx == def_ui_main_speed_mid) THEN
+                l_speed_coef = ui_speed_coef_mid
+        ELIF (ui_main_speed_idx == def_ui_main_speed_high) THEN
+                l_speed_coef = ui_speed_coef_high
+        END
+        ;TPWrite 0,"SPEED COEF: %f",l_speed_coef
+;
+;
+        ; default accel, decel time
+        l_robot_accel_time = ui_setup_speed_acc[p_i_move_point]
+        l_robot_decel_time = ui_setup_speed_dec[p_i_move_point]
+;
+;
+        ; default main speed
+        IF ((p_i_move_point == def_move_home) OR (p_i_move_point == def_move_safepose)) THEN
+                l_robot_main_speed = (ui_setup_speed_main[p_i_move_point]*l_speed_coef)
+;
+        ELIF ((p_i_move_point == def_move_up) OR (p_i_move_point == def_move_teach)) THEN
+                l_robot_main_speed = (ui_stn_speed_up[p_i_stn_number]/def_robot_va_speed_z_axis)*100
+;
+        ELIF (p_i_move_point == def_move_down) THEN
+                l_robot_main_speed = (ui_stn_speed_down[p_i_stn_number]/def_robot_va_speed_z_axis)*100
+;
+        ELIF (p_i_move_point == def_move_waitpose) THEN
+                l_robot_main_speed = ui_stn_speed_main[p_i_stn_number]*l_speed_coef
+;                IF (l_ret_pre_step == def_move_extend) THEN
+;                        l_robot_main_speed = (ui_stn_speed_main[p_i_stn_number]*l_speed_coef)
+;                ELSE
+;                        l_robot_main_speed = ui_stn_speed_main[p_i_stn_number]
+;                END
+;
+        ELSE
+                l_robot_main_speed = (ui_stn_speed_main[p_i_stn_number]*l_speed_coef)
+;
+        END
+;
+;
+        ; AHS 기능 활성화
+        Call get_status_interlock(def_interlock_mask_ahs,l_ret_is_ahs_on)
+        IF (p_i_motion_mode == def_motion_mode_cmd) AND (l_ret_is_ahs_on == TRUE) THEN
+                IF (p_i_move_point == def_move_extend) OR (p_i_move_point == def_move_retract) THEN
+;
+                .LOCAL l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm
+                .LOCAL l_cur_arm_mode,l_cur_master_arm
+;
+                        Call get_cur_robot_process(l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm)
+                        l_cur_arm_mode = l_ret_arm_mode
+                        l_cur_master_arm = l_ret_master_arm
+;
+                        Call get_vrtl_wafer_present(l_cur_arm_mode,l_cur_master_arm,l_ret_is_wafer_present)
+                        IF (l_ret_is_wafer_present == FALSE) THEN
+                                ;TPWrite 0,"[AHS] OVER SPEED"
+                                l_speed_coef = ui_speed_coef_ahs
+                                l_robot_main_speed = (ui_stn_speed_main[p_i_stn_number]*l_speed_coef)
+                                l_robot_accel_time = ui_setup_speed_ahs_accel[p_i_move_point]
+                                l_robot_decel_time = ui_setup_speed_ahs_decel[p_i_move_point]
+                        ELSE
+                                ;TPWrite 0,"[AHS] NORMAL SPEED"
+                        END
+                END
+        END
+;
+        Call write_speed_rate_to_ui(l_robot_main_speed)
+;
+        ;TPWrite 0,"ROBOT MAIN SPEED RATE: %f",l_robot_main_speed
+        Speed l_robot_main_speed
+;
+.LOCAL l_result_accel_rate,l_result_decel_rate
+;
+        l_result_accel_rate = Int(((def_robot_acctime/l_robot_accel_time)*100000)*(l_robot_main_speed/100))
+        l_result_decel_rate = Int(((def_robot_acctime/l_robot_decel_time)*100000)*(l_robot_main_speed/100))
+;
+        IF (l_result_accel_rate<1) THEN
+                l_result_accel_rate = 1
+        ELIF (l_result_accel_rate>500) THEN
+                l_result_accel_rate = 500
+        END
+;
+        IF (l_result_decel_rate<1) THEN
+                l_result_decel_rate = 1
+        ELIF (l_result_decel_rate>500) THEN
+                l_result_decel_rate = 500
+        END
+;
+        ;TPWrite 0,"ROBOT ACC RATE: %f",l_result_accel_rate
+        ;TPWrite 0,"ROBOT DEC RATE: %f",l_result_decel_rate
+        Accel l_result_accel_rate
+        Decel l_result_decel_rate

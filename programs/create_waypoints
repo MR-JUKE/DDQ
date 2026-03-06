@@ -1,0 +1,128 @@
+;************************************************************************************************
+; 1. 함수 이름: create_waypoints(p_i_cur_cmd,p_i_stnno,p_i_slotno,p_i_arm_mode,p_i_master_arm)
+;
+; 2. 함수 설명: 로봇의 모션 포인트를 생성합니다.
+;
+; 3. Defined Error Code: ERR_32.0 ~ 32.4
+;************************************************************************************************
+.PARAM p_i_cur_cmd,p_i_stnno,p_i_slotno,p_i_arm_mode,p_i_master_arm
+.LOCAL l_stn_slot_pitch,l_up_stroke,l_down_stroke
+.LOCAL l_ofst_edge_idt,l_ofst_place,l_ofst_zcomp_down,l_ofst_zcomp_up,l_ofst_awc_via
+;
+;
+        l_stn_slot_pitch = ui_stn_param_pitch[p_i_stnno]*(p_i_slotno-1)          ; 각 Station Param에 입력된 슬롯 간 Pitch 값.
+        l_up_stroke = l_stn_slot_pitch+ui_stn_param_stroke_up[p_i_stnno]
+        l_down_stroke = l_stn_slot_pitch-ui_stn_param_stroke_down[p_i_stnno]
+        l_ofst_edge_idt = ui_stn_offset_edge_idt[p_i_stnno]
+        l_ofst_place = ui_stn_offset_place[p_i_stnno]
+        l_ofst_zcomp_up = ui_stn_offset_zcomp_up[p_i_stnno]
+        l_ofst_zcomp_down = ui_stn_offset_zcomp_down[p_i_stnno]
+        l_ofst_awc_via = ui_stn_awc_via_point_dist[p_i_stnno]
+;
+;
+;================================================================================================
+;     MOTION OFFSET SETTING
+;================================================================================================
+        IF (ui_stn_awc_enable[p_i_stnno] == TRUE) THEN            ; AWC 를 사용하는 STATION일 경우 OFFSET 설정값을 0으로 초기화
+                l_ofst_edge_idt = 0
+                l_ofst_place = 0
+        END
+;
+;
+;================================================================================================
+;     MOTION POSITION SETTING
+;================================================================================================
+        IF (p_i_arm_mode <> def_arm_mode_single) AND (p_i_arm_mode <> def_arm_mode_dual) THEN
+                TPWrite 0,"[create_waypoints] ERR_32.1: INVALID 'p_i_arm_mode' PARAMETER"
+                RaiseError  -def_err_arm_mode
+        END
+;
+        IF (p_i_master_arm <> def_master_arm_ll) AND (p_i_master_arm <> def_master_arm_lr) AND (p_i_master_arm <> def_master_arm_ul) AND (p_i_master_arm <> def_master_arm_ur) THEN
+                TPWrite 0,"[create_waypoints] ERR_32.2: INVALID 'p_i_master_arm' PARAMETER"
+                RaiseError  -def_err_master_arm
+        END
+;
+;
+;================================================================================================
+;     SET WAYPOINTS
+;================================================================================================
+.LOCAL #l_j_teach_pos
+;
+        IF (p_i_master_arm == def_master_arm_ll) THEN
+                Point #l_j_teach_pos = #j_stn_tch_ll[p_i_stnno]
+        ELIF (p_i_master_arm == def_master_arm_lr) THEN
+                Point #l_j_teach_pos = #j_stn_tch_lr[p_i_stnno]
+        ELIF (p_i_master_arm == def_master_arm_ul) THEN
+                Point #l_j_teach_pos = #j_stn_tch_ul[p_i_stnno]
+        ELIF (p_i_master_arm == def_master_arm_ur) THEN
+                Point #l_j_teach_pos = #j_stn_tch_ur[p_i_stnno]
+        END
+;
+        IF (p_i_master_arm == def_master_arm_ll) OR (p_i_master_arm == def_master_arm_lr) THEN
+                IF (p_i_cur_cmd == def_cmd_pick) OR (p_i_cur_cmd == def_cmd_expick) OR (p_i_cur_cmd == def_cmd_repick) OR (p_i_cur_cmd == def_cmd_delta_pick) THEN
+                        Point #j_point_waitpose = #j_point_home+Joint(GetJ(#l_j_teach_pos,def_axis_z)+l_down_stroke+l_ofst_zcomp_down,GetJ(#l_j_teach_pos,def_axis_t),0,0)
+                        Point #j_point_extend = #l_j_teach_pos+Joint(l_down_stroke,0,l_ofst_edge_idt,0)
+                        Point #j_point_teach = #l_j_teach_pos+Joint(0,0,l_ofst_edge_idt,0)
+                        Point #j_point_up = #l_j_teach_pos+Joint(l_up_stroke,0,0,0)
+                        Point #j_point_down = #j_point_extend
+                        Point #j_point_retract = #j_point_home+Joint(GetJ(#l_j_teach_pos,def_axis_z)+l_up_stroke+l_ofst_zcomp_up,GetJ(#l_j_teach_pos,def_axis_t),0,0)
+;
+                ELIF (p_i_cur_cmd == def_cmd_place) OR (p_i_cur_cmd == def_cmd_explace) OR (p_i_cur_cmd == def_cmd_replace) THEN
+                        Point #j_point_waitpose = #j_point_home+Joint(GetJ(#l_j_teach_pos,def_axis_z)+l_up_stroke+l_ofst_zcomp_up,GetJ(#l_j_teach_pos,def_axis_t),0,0)
+                        Point #j_point_extend = #l_j_teach_pos+Joint(l_up_stroke,0,l_ofst_place,0)
+                        Point #j_point_teach = #l_j_teach_pos+Joint(0,0,l_ofst_place,0)
+                        Point #j_point_up = #j_point_extend
+                        Point #j_point_down = #l_j_teach_pos+Joint(l_down_stroke,0,l_ofst_place+l_ofst_edge_idt,0)
+                        Point #j_point_retract = #j_point_home+Joint(GetJ(#l_j_teach_pos,def_axis_z)+l_down_stroke+l_ofst_zcomp_down,GetJ(#l_j_teach_pos,def_axis_t),0,0)
+;
+                        Point #j_point_awc_via = #l_j_teach_pos+Joint(l_up_stroke,0,-l_ofst_awc_via,0)
+                        Point #j_point_awc_extend = #l_j_teach_pos+Joint(l_up_stroke,0,0,0)
+                        Point #j_point_awc_teach = #l_j_teach_pos+Joint(0,0,l_ofst_place,0)
+                        Point #j_point_awc_down = #l_j_teach_pos+Joint(l_down_stroke,0,l_ofst_place+l_ofst_edge_idt,0)
+;
+                ELIF (p_i_cur_cmd == def_cmd_wcheck) THEN
+                        Point #j_point_waitpose = #j_point_home+Joint(GetJ(#l_j_teach_pos,def_axis_z),GetJ(#l_j_teach_pos,def_axis_t),0,0)
+                        Point #j_point_extend = #l_j_teach_pos
+                        Point #j_point_teach = #l_j_teach_pos
+                        Point #j_point_up = #l_j_teach_pos
+                        Point #j_point_down = #l_j_teach_pos
+                        Point #j_point_retract = #j_point_home+Joint(GetJ(#l_j_teach_pos,def_axis_z),GetJ(#l_j_teach_pos,def_axis_t),0,0)
+                ELSE
+                        TPWrite 0,"[create_waypoints] ERR_32.3: UNSUPPORTED 'p_i_cur_cmd': %d",p_i_cur_cmd
+                        RaiseError -def_err_command_param
+                END
+;
+        ELIF (p_i_master_arm == def_master_arm_ul) OR (p_i_master_arm == def_master_arm_ur) THEN
+                IF (p_i_cur_cmd == def_cmd_pick) OR (p_i_cur_cmd == def_cmd_expick) OR (p_i_cur_cmd == def_cmd_repick) OR (p_i_cur_cmd == def_cmd_delta_pick) THEN
+                        Point #j_point_waitpose = #j_point_home+Joint(GetJ(#l_j_teach_pos,def_axis_z)+l_down_stroke+l_ofst_zcomp_down,GetJ(#l_j_teach_pos,def_axis_t),0,0)
+                        Point #j_point_extend = #l_j_teach_pos+Joint(l_down_stroke,0,0,l_ofst_edge_idt)
+                        Point #j_point_teach = #l_j_teach_pos+Joint(0,0,0,l_ofst_edge_idt)
+                        Point #j_point_up = #l_j_teach_pos+Joint(l_up_stroke,0,0,0)
+                        Point #j_point_down = #j_point_extend
+                        Point #j_point_retract = #j_point_home+Joint(GetJ(#l_j_teach_pos,def_axis_z)+l_up_stroke+l_ofst_zcomp_up,GetJ(#l_j_teach_pos,def_axis_t),0,0)
+;
+                ELIF (p_i_cur_cmd == def_cmd_place) OR (p_i_cur_cmd == def_cmd_explace) OR (p_i_cur_cmd == def_cmd_replace) THEN
+                        Point #j_point_waitpose = #j_point_home+Joint(GetJ(#l_j_teach_pos,def_axis_z)+l_up_stroke+l_ofst_zcomp_up,GetJ(#l_j_teach_pos,def_axis_t),0,0)
+                        Point #j_point_extend = #l_j_teach_pos+Joint(l_up_stroke,0,0,l_ofst_place)
+                        Point #j_point_teach = #l_j_teach_pos+Joint(0,0,0,l_ofst_place)
+                        Point #j_point_up = #j_point_extend
+                        Point #j_point_down = #l_j_teach_pos+Joint(l_down_stroke,0,0,l_ofst_place+l_ofst_edge_idt)
+                        Point #j_point_retract = #j_point_home+Joint(GetJ(#l_j_teach_pos,def_axis_z)+l_down_stroke+l_ofst_zcomp_down,GetJ(#l_j_teach_pos,def_axis_t),0,0)
+;
+                        Point #j_point_awc_via = #l_j_teach_pos+Joint(l_up_stroke,0,0,-l_ofst_awc_via)
+                        Point #j_point_awc_extend = #l_j_teach_pos+Joint(l_up_stroke,0,0,0)
+                        Point #j_point_awc_teach = #l_j_teach_pos+Joint(0,0,0,l_ofst_place)
+                        Point #j_point_awc_down = #l_j_teach_pos+Joint(l_down_stroke,0,0,l_ofst_place+l_ofst_edge_idt)
+;
+                ELIF (p_i_cur_cmd == def_cmd_wcheck) THEN
+                        Point #j_point_waitpose = #j_point_home+Joint(GetJ(#l_j_teach_pos,def_axis_z),GetJ(#l_j_teach_pos,def_axis_t),0,0)
+                        Point #j_point_extend = #l_j_teach_pos
+                        Point #j_point_teach = #l_j_teach_pos
+                        Point #j_point_up = #l_j_teach_pos
+                        Point #j_point_down = #l_j_teach_pos
+                        Point #j_point_retract = #j_point_home+Joint(GetJ(#l_j_teach_pos,def_axis_z),GetJ(#l_j_teach_pos,def_axis_t),0,0)
+                ELSE
+                        TPWrite 0,"[create_waypoints] ERR_32.4: UNSUPPORTED 'p_i_cur_cmd': %d",p_i_cur_cmd
+                        RaiseError -def_err_command_param
+                END
+        END

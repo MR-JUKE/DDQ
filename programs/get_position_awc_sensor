@@ -1,0 +1,48 @@
+;************************************************************************************************
+; 1. 함수 이름 : get_position_awc_sensor(p_i_stn_number,p_i_master_arm,p_i_awc_select,p_o_awc_xpos_extend,p_o_awc_ypos_extend,p_o_awc_xpos_retract,p_o_awc_ypos_retract)
+;
+; 2. 함수 설명 : 저장되어되어 있는 AWC SENSOR의 X, Y(BASE) 좌표 값을 가져온다.
+;************************************************************************************************
+.PARAM p_i_stn_number,p_i_master_arm,p_i_awc_select,p_o_awc_xpos_extend,p_o_awc_ypos_extend,p_o_awc_xpos_retract,p_o_awc_ypos_retract
+.LOCAL l_idx
+;
+;
+        l_idx = p_i_stn_number*10
+;
+;       ; EXTEND 동작 시 LOWER ARM에 트리거된 좌/우측 AWC 센서 위치 저장
+        IF (p_i_master_arm == def_master_arm_lower) THEN
+                IF (p_i_awc_select == def_awc_sensor_left) THEN
+                        TPWrite 0,"[get_position_awc_sensor] GET LOWER ARM AWC LEFT SENSOR POS"
+                        p_o_awc_xpos_extend = DX(t_awc_pos_lowarm[l_idx+def_left_awc_pos_extend])
+                        p_o_awc_ypos_extend = DY(t_awc_pos_lowarm[l_idx+def_left_awc_pos_extend])
+                        p_o_awc_xpos_retract = DX(t_awc_pos_lowarm[l_idx+def_left_awc_pos_retract])
+                        p_o_awc_ypos_retract = DY(t_awc_pos_lowarm[l_idx+def_left_awc_pos_retract])
+;
+                ELIF (p_i_awc_select == def_awc_sensor_right) THEN
+                        TPWrite 0,"[get_position_awc_sensor] GET LOWER ARM AWC RIGHT SENSOR POS"
+                        p_o_awc_xpos_extend = DX(t_awc_pos_lowarm[l_idx+def_right_awc_pos_extend])
+                        p_o_awc_ypos_extend = DY(t_awc_pos_lowarm[l_idx+def_right_awc_pos_extend])
+                        p_o_awc_xpos_retract = DX(t_awc_pos_lowarm[l_idx+def_right_awc_pos_retract])
+                        p_o_awc_ypos_retract = DY(t_awc_pos_lowarm[l_idx+def_right_awc_pos_retract])
+                END
+;
+;       ; EXTEND 동작 시 UPPER ARM에 트리거된 좌/우측 AWC 센서 위치 저장
+        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                IF (p_i_awc_select == def_awc_sensor_left) THEN
+                        TPWrite 0,"[get_position_awc_sensor] GET UPPER ARM AWC LEFT SENSOR POS"
+                        p_o_awc_xpos_extend = DX(t_awc_pos_uparm[l_idx+def_left_awc_pos_extend])
+                        p_o_awc_ypos_extend = DY(t_awc_pos_uparm[l_idx+def_left_awc_pos_extend])
+                        p_o_awc_xpos_retract = DX(t_awc_pos_uparm[l_idx+def_left_awc_pos_retract])
+                        p_o_awc_ypos_retract = DY(t_awc_pos_uparm[l_idx+def_left_awc_pos_retract])
+;
+                ELIF (p_i_awc_select == def_awc_sensor_right) THEN
+                        TPWrite 0,"[get_position_awc_sensor] GET UPPER ARM AWC RIGHT SENSOR POS"
+                        p_o_awc_xpos_extend = DX(t_awc_pos_uparm[l_idx+def_right_awc_pos_extend])
+                        p_o_awc_ypos_extend = DY(t_awc_pos_uparm[l_idx+def_right_awc_pos_extend])
+                        p_o_awc_xpos_retract = DX(t_awc_pos_uparm[l_idx+def_right_awc_pos_retract])
+                        p_o_awc_ypos_retract = DY(t_awc_pos_uparm[l_idx+def_right_awc_pos_retract])
+                END
+        END
+;
+        TPWrite 0,"[get_position_awc_sensor] AWC SENSOR POSITION(EXTEND) X = %f, Y = %f ",p_o_awc_xpos_extend,p_o_awc_ypos_extend
+        TPWrite 0,"[get_position_awc_sensor] AWC SENSOR POSITION(RETRACT) X = %f, Y = %f ",p_o_awc_xpos_retract,p_o_awc_ypos_retract

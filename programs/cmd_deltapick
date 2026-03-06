@@ -1,0 +1,395 @@
+;************************************************************************************************
+; 1. Function : cmd_deltapick()
+;
+; 2. Description :
+; - Wafer를 집는 동작을 Delta pick 기능으로 수행하는 최상위 매크로입니다.
+; - 상위에서 전달받은 X,Y 보정값만큼 보정하여 Pick 동작을 수행합니다.
+;
+; 3. Defined ErrorCode : ERR_9.0 ~ 9.11
+;************************************************************************************************
+;
+.LOCAL l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm
+.LOCAL l_cur_ui_cmd,l_cur_ui_stnno,l_cur_ui_slotno,l_cur_ui_arm_mode,l_cur_ui_master_arm
+.LOCAL l_ret_is_safepose,l_ret_errcode,l_err_count
+;
+;
+        ui_cur_cmd = def_cmd_delta_pick
+        Call get_cur_ui_cmd_var(l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm)
+        TPWrite 0,"======== STATION %d-%d DELTA-PICK ========",l_ret_stnno,l_ret_slotno
+        l_cur_ui_cmd = l_ret_cmd
+        l_cur_ui_stnno = l_ret_stnno
+        l_cur_ui_slotno = l_ret_slotno
+        l_cur_ui_arm_mode = l_ret_arm_mode
+        l_cur_ui_master_arm = l_ret_master_arm
+;
+        IF (l_cur_ui_cmd <> def_cmd_delta_pick) THEN
+                TPWrite 0,"[cmd_deltapick] ERR_9.0: WRONG COMMAND: %d",l_cur_ui_cmd
+                RaiseError -def_err_command_param
+                Return
+        END
+;
+        Call check_interlocks(l_cur_ui_stnno,def_move_waitpose,l_ret_errcode)
+        IF (l_ret_errcode <> def_err_none) THEN
+                TPWrite 0,"[cmd_deltapick] ERR_9.1: INTERLOCK ERROR"
+                RaiseError  -l_ret_errcode
+                Return
+        END
+;
+;******** Wafer Present, Wafer Slide, AWC, Door 기능 활성화/비활성화 여부를 저장한다.
+.LOCAL l_ret_is_on
+.LOCAL l_is_wafer_present_interlock_on,l_is_enabled_wfr_present_param,l_is_wafer_present_on
+.LOCAL l_is_wafer_slide_interlock_on,l_is_enabled_wafer_slide_param,l_is_wafer_slide_on
+.LOCAL l_is_awc_interlock_on,l_is_enabled_awc_param,l_is_awc_on
+.LOCAL l_is_gate_interlock_on
+;
+        Call get_status_interlock(def_interlock_mask_present_sensor,l_ret_is_on)
+        l_is_wafer_present_interlock_on = l_ret_is_on
+        l_is_enabled_wfr_present_param = ui_stn_wafer_detection_enable[l_cur_ui_stnno]; Station Param 중 Wafer 감지 ON/OFF 여부 변수 'ui_stn_wafer_detection_enable[]' 값 저장.
+;
+        l_is_wafer_present_on = (l_is_wafer_present_interlock_on == TRUE) AND (l_is_enabled_wfr_present_param <> FALSE)
+;
+        Call get_status_interlock(def_interlock_mask_wafer_slide,l_ret_is_on)
+        l_is_wafer_slide_interlock_on = l_ret_is_on
+        l_is_enabled_wafer_slide_param = ui_stn_awc_enable_wafer_slide[l_cur_ui_stnno]
+;
+        l_is_wafer_slide_on = (l_is_wafer_slide_interlock_on == TRUE) AND (l_is_enabled_wafer_slide_param <> FALSE)
+;
+        Call get_status_interlock(def_interlock_mask_awc,l_ret_is_on)
+        l_is_awc_interlock_on = l_ret_is_on
+        l_is_enabled_awc_param = ui_stn_awc_enable[l_cur_ui_stnno]
+;
+        l_is_awc_on = (l_is_awc_interlock_on == TRUE) AND (l_is_enabled_awc_param <> FALSE)
+;
+        Call get_status_interlock(def_interlock_mask_gate,l_ret_is_on)
+        l_is_gate_interlock_on = l_ret_is_on
+;
+        Call set_robot_process(l_cur_ui_cmd,l_cur_ui_stnno,l_cur_ui_slotno,l_cur_ui_arm_mode,l_cur_ui_master_arm)
+        Call set_seq_start(TRUE)
+;
+        WHILE (TRUE == g_flag_seq_start) DO
+                IF (g_pre_seqno <> g_cur_seqno) THEN
+                        g_pre_seqno = g_cur_seqno
+                        l_err_count = 0
+                END
+;
+;*******************************************************************************************************************
+; SEQ 1: 저장된 로봇 처리 변수 값을 읽어 저장합니다.
+;*******************************************************************************************************************
+                IF (g_cur_seqno == 1) THEN
+;
+                .LOCAL l_cur_robot_cmd,l_cur_robot_stnno,l_cur_robot_slotno,l_cur_robot_arm_mode,l_cur_robot_master_arm
+;
+                        TPWrite 0,"SEQUENCE START"
+                        Call get_cur_robot_process(l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm)
+                        l_cur_robot_cmd = l_ret_cmd
+                        l_cur_robot_stnno = l_ret_stnno
+                        l_cur_robot_slotno = l_ret_slotno
+                        l_cur_robot_arm_mode = l_ret_arm_mode
+                        l_cur_robot_master_arm = l_ret_master_arm
+;
+                        g_cur_seqno = 10
+;
+;*******************************************************************************************************************
+; SEQ 10: 게이트, 리프트 인터락을 확인하고 웨이퍼 데이터가 없는지, SAFE POSE 위치인지 확인합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 10) THEN
+;
+                .LOCAL l_ret_is_gate_open,l_ret_is_lift_up
+;
+                        Call check_gate_open(l_cur_robot_stnno,l_ret_is_gate_open) ; STATION DOOR 열림 여부 확인
+                        IF (l_ret_is_gate_open <> TRUE) THEN
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_deltapick] ERR_9.2: GATE CLOSE"
+                                RaiseError -def_err_gate_open
+                        END
+;
+                        Call check_lift_up(l_cur_robot_stnno,l_ret_is_lift_up) ; LIFT UP 여부 확인
+                        IF (l_ret_is_lift_up <> TRUE) THEN
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_deltapick] ERR_9.3: LIFT UP"
+                                RaiseError -def_err_lift
+                        END
+;
+                        Call check_wafer_data(l_cur_robot_cmd,l_cur_robot_arm_mode,l_cur_robot_master_arm,l_ret_errcode)
+                        IF (l_ret_errcode <> def_err_none) THEN
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_deltapick] ERR_9.4: INAPPROPRIATE WAFER DATA"
+                                RaiseError -l_ret_errcode
+                        END
+;
+                        Call check_safe_pose(l_ret_is_safepose)
+                        IF (l_ret_is_safepose <> TRUE) THEN
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_deltapick] ERR_9.5: NOT IN SAFE POSE"
+                                RaiseError -def_err_is_safe_pose
+                        ELSE
+                                Call set_status_safepose(TRUE)
+                                Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_none)
+                        END
+;
+                        g_cur_seqno = 20
+;
+;*******************************************************************************************************************
+; SEQ 20: SAFEPOSE 위치로 이동합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 20) THEN
+                        ;Call goto_safepose()
+;
+                        g_cur_seqno = 30
+;
+;*******************************************************************************************************************
+; SEQ 30: 로봇 모션 포인트를 설정하고 RETRACT 신호를 켭니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 30) THEN
+                        Call enable_delta_pick_mode(TRUE)
+                        Call set_robot_waypoints(l_cur_robot_cmd,l_cur_robot_stnno,l_cur_robot_slotno,l_cur_robot_arm_mode,l_cur_robot_master_arm)
+                        Call set_signal_retract(l_cur_robot_stnno,def_signal_on)
+;
+                        g_cur_seqno = 40
+;
+;*******************************************************************************************************************
+; SEQ 40: WAITPOSE 위치로 이동합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 40) THEN
+;                       ; PICK 명령이므로 웨이퍼가 존재하지 않는 상태라고 가상으로 설정합니다.
+                        Call set_vrtl_wafer_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,FALSE)
+;
+                        TPWrite 0, "[GOTO WAIT]"
+                        Call goto_position(l_cur_robot_stnno,def_move_waitpose,def_motion_mode_cmd)
+;
+                        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_down)
+                        Call set_status_safepose(TRUE)
+;
+                        ;Call is_robot_inposition(def_move_waitpose,l_ret_is_inpos)
+                        ;IF (l_ret_is_inpos == TRUE) THEN
+                        ;        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_down)
+                        ;        g_cur_seqno = 50
+                        ;ELIF (l_err_count < 3) THEN
+                        ;        l_err_count = l_err_count+1
+                        ;        WaitTime 1
+                        ;ELSE
+                        ;        Call set_seq_start(FALSE)
+                        ;        TPWrite 0,"[cmd_deltapick] ERR_1.6: ROBOT INPOSITION ERROR"
+                        ;        RaiseError -def_err_inposition
+                        ;END
+                        g_cur_seqno = 50
+;
+;*******************************************************************************************************************
+; SEQ 50: WAFER PRESENT 인터락 여부에 따라 기능 활성화
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 50) THEN
+                        IF (l_is_wafer_present_on == TRUE) THEN
+                                TPWrite 0,"[ENABLE WAFER PRESENCE CHECK]"
+                                Call enable_wafer_present_check(TRUE)
+                        END
+;
+                        IF (l_is_gate_interlock_on == TRUE) THEN
+                                TPWrite 0,"[ENABLE GATE CHECK]"
+                                Call enable_gate_open_check(TRUE)
+                        END
+;
+                        g_cur_seqno = 60
+;
+;*******************************************************************************************************************
+; SEQ 60: EXTEND 위치로 이동합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 60) THEN
+;
+                .LOCAL l_ret_is_mismatch,l_ret_is_error
+;
+                        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_extend,def_rq_present_down)
+                        Call set_signal_retract(l_cur_robot_stnno,def_signal_off)
+                        Call set_status_safepose(FALSE)
+;
+                        TPWrite 0, "[GOTO EXTEND]"
+                        Call goto_position(l_cur_robot_stnno,def_move_extend,def_motion_mode_cmd)
+;
+                        Call get_wafer_presence_mismatch(l_ret_is_mismatch)
+                        Call enable_wafer_present_check(FALSE)
+;
+                        Call get_gate_open_error(l_ret_is_error)
+                        Call enable_gate_open_check(FALSE)
+;
+                        IF ((l_ret_is_mismatch == TRUE) OR (l_ret_is_error == TRUE)) THEN
+                                WaitTime 1
+                                IF (ui_stn_option_wfr_det_fail[l_cur_robot_stnno] == def_wfr_detect_fail_pos_retract) THEN
+                                        Call goto_safepose()
+                                        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_down)
+                                END
+;
+                                Call set_seq_start(FALSE)
+                                IF (l_ret_is_mismatch == TRUE) THEN
+                                        TPWrite 0,"[cmd_deltapick] ERR_9.6: WAFER PRESENCE MISMATCH DELTA-PICK COMMAND"
+                                        RaiseError  -def_err_wafer_present
+                                ELIF (l_ret_is_error == TRUE) THEN
+                                        TPWrite 0,"[cmd_deltapick] ERR_9.7: GATE CLOSE"
+                                        RaiseError  -def_err_gate_open
+                                END
+                        END
+;
+                        WaitTime ui_stn_timer_extend_delay[l_cur_robot_stnno]
+;
+                        g_cur_seqno = 70
+;
+;*******************************************************************************************************************
+; SEQ 70: 입력된 스테이션 파라미터 값을 통해 TEACH 위치로 이동 여부를 확인합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 70) THEN
+                        IF ((ui_stn_awc_enable[l_cur_ui_stnno] == FALSE) AND (ui_stn_offset_edge_idt[l_cur_ui_stnno] <> 0)) THEN
+                                g_cur_seqno = 80
+                        ELSE
+                                g_cur_seqno = 90
+                        END
+;
+;*******************************************************************************************************************
+; SEQ 80: TEACH 위치로 이동합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 80) THEN
+                        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_extend,def_rq_present_none)
+;
+                        TPWrite 0, "[GOTO TEACH]"
+                        Call goto_position(l_cur_robot_stnno,def_move_teach,def_motion_mode_cmd)
+;
+                        g_cur_seqno = 90
+;
+;*******************************************************************************************************************
+; SEQ 90: UP 위치로 이동합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 90) THEN
+                        TPWrite 0, "[GOTO UP]"
+                        Call goto_position(l_cur_robot_stnno,def_move_up,def_motion_mode_cmd)
+                        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_extend,def_rq_present_up)
+;
+                        g_cur_seqno = 100
+;
+;*******************************************************************************************************************
+; SEQ 100: WAFER SLIDE, AWC INTERLOCK, WAFER PRESENT 인터락 여부에 따라 기능 활성화
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 100) THEN
+                        IF (l_is_wafer_present_on == TRUE) THEN
+                                TPWrite 0,"[ENABLE WAFER PRESENT CHECK]"
+                                Call enable_wafer_present_check(TRUE)
+                        END
+;
+;                       ; WAFER SLIDE, AWC 사용 여부에 따라 터치 프로브 기능을 활성화한다.
+                        IF ((l_is_wafer_slide_on == TRUE) OR (l_is_awc_on == TRUE)) THEN
+                                TPWrite 0,"[TOUCH PROBE ON]"
+                                Call set_awc_channel(l_cur_robot_stnno)
+                                Call enable_touch_probe(TRUE,def_latchmode_risingfalling)
+                        END
+;
+                        g_cur_seqno = 110
+;
+;*******************************************************************************************************************
+; SEQ 110: RETRACT 위치로 이동합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 110) THEN
+;                       ; PICK 명령에서 RETRACT 동작은 웨이퍼가 있어야 하므로 가상 웨이퍼가 있다고 설정.
+                        Call set_vrtl_wafer_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,TRUE)
+;
+                        TPWrite 0, "[GOTO RETRACT]"
+                        Call goto_position(l_cur_robot_stnno,def_move_retract,def_motion_mode_cmd)
+                        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_up)
+                        Call set_signal_retract(l_cur_robot_stnno,def_signal_on)
+                        Call set_status_safepose(TRUE)
+;
+                        Call get_wafer_presence_mismatch(l_ret_is_mismatch)
+                        Call enable_wafer_present_check(FALSE)
+                        Call enable_touch_probe(FALSE)
+;
+                        IF (l_ret_is_mismatch == TRUE) THEN
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_deltapick] ERR_9.8: WAFER PRESENCE MISMATCH. NO WAFER."
+                                RaiseError -def_err_wafer_present
+                        END
+;
+                        Call set_real_wafer_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,TRUE)
+;
+                        g_cur_seqno = 120
+;
+;*******************************************************************************************************************
+; SEQ 120: WAFER SLIDE 기능 활성화 여부에 따라 분기합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 120) THEN
+;                       ; WAFER SLIDE 기능이 활성화되었을 경우 터치 프로브 트리거 값을 얻고 계산을 하기 위해 seq 130으로 이동
+                        IF (l_is_wafer_slide_on == TRUE) THEN
+                                TPWrite 0,"CALCULATE DX DY"
+                                g_cur_seqno = 130
+                        ELSE
+                                g_cur_seqno = 9999
+                        END
+;
+;*******************************************************************************************************************
+; SEQ 130: AWC 기능의 dx, dy를 계산합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 130) THEN
+;
+                .LOCAL l_use_awc_sensor
+                .LOCAL l_ret_dx,l_ret_dy
+                .LOCAL l_left_awc_dx,l_left_awc_dy,l_right_awc_dx,l_right_awc_dy,l_result_dx,l_result_dy
+                .LOCAL l_is_left_awc_enabled,l_is_right_awc_enabled
+                .LOCAL l_ret_errcode
+;
+                        l_use_awc_sensor = ui_stn_awc_select[l_cur_robot_stnno]              ; UI PARAM에 설정된 AWC 센서 사용 설정 값 Read.
+;
+                        l_is_left_awc_enabled = ((l_use_awc_sensor == def_awc_select_both) OR (l_use_awc_sensor == def_awc_select_left))
+                        l_is_right_awc_enabled = ((l_use_awc_sensor == def_awc_select_both) OR (l_use_awc_sensor == def_awc_select_right))
+;
+                        IF (l_is_left_awc_enabled) THEN
+                                Call calc_awc_correction(l_cur_robot_stnno,l_cur_robot_master_arm,def_awc_select_left,def_move_retract,l_ret_dx,l_ret_dy,l_ret_errcode)
+                                IF (l_ret_errcode <> def_err_none) THEN
+                                        TPWrite 0,"[cmd_deltapick] ERR_9.9: CANNOT CALCULATE LEFT AWC CORRECTION VAL."
+                                        RaiseError -l_ret_errcode
+                                END
+;
+                                l_left_awc_dx = l_ret_dx
+                                l_left_awc_dy = l_ret_dy
+                        END
+;
+                        IF (l_is_right_awc_enabled) THEN
+                                Call calc_awc_correction(l_cur_robot_stnno,l_cur_robot_master_arm,def_awc_select_right,def_move_retract,l_ret_dx,l_ret_dy,l_ret_errcode)
+                                IF (l_ret_errcode <> def_err_none) THEN
+                                        TPWrite 0,"[cmd_deltapick] ERR_9.10: CANNOT CALCULATE RIGHT AWC CORRECTION VAL."
+                                        RaiseError -l_ret_errcode
+                                END
+;
+                                l_right_awc_dx = l_ret_dx
+                                l_right_awc_dy = l_ret_dy
+                        END
+;
+;                       ; 최종 보정해야할 dx,dy를 산출한다. (dx, dy는 웨이퍼가 틀어진 변화량임.)
+                        IF (l_use_awc_sensor == def_awc_select_both) THEN
+                                l_result_dx = (l_left_awc_dx+l_right_awc_dx)/2
+                                l_result_dy = (l_left_awc_dy+l_right_awc_dy)/2
+                        ELIF (l_is_left_awc_enabled) THEN
+                                l_result_dx = l_left_awc_dx
+                                l_result_dy = l_left_awc_dy
+                        ELIF (l_is_right_awc_enabled) THEN
+                                l_result_dx = l_right_awc_dx
+                                l_result_dy = l_right_awc_dy
+                        END
+;
+                        TPWrite 0,"[cmd_deltapick] DIFF RESULT dx = %f",l_result_dx
+                        TPWrite 0,"[cmd_deltapick] DIFF RESULT dy = %f",l_result_dy
+;
+                        Call save_ui_awc_monitor_val(def_move_retract,l_result_dx,l_result_dy)
+;
+                        g_cur_seqno = 9999
+;
+;*******************************************************************************************************************
+; SEQ 9999: SEQUENCE를 끝냅니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 9999) THEN
+                        TPWrite 0,"SEQUENCE END"
+                        Call set_seq_start(FALSE)
+                END
+        END
+;
+;
+.LOCAL l_ret_is_fan_error
+;
+        Call check_fan_error(l_ret_is_fan_error)
+        IF (l_ret_is_fan_error <> FALSE) THEN
+                TPWrite 0,"[cmd_deltapick] ERR_9.11: FAN ERROR"
+                RaiseError  -def_err_fan
+        END

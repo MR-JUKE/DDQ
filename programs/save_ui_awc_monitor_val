@@ -1,0 +1,15 @@
+;************************************************************************************************
+; 1. 함수 이름 : save_ui_awc_monitor_val()
+; 2. 함수 설명 : UI의 'AWC MONITOR'의 dx, dy 항목에 반영되는 변수에 Argument로 입력받은 dx, dy값을 저장합니다.
+;************************************************************************************************
+;
+.PARAM p_i_step,p_i_dx,p_i_dy
+;
+;
+        IF (p_i_step == def_move_awc_extend) THEN
+                ui_awc_offset_extend_dx = -p_i_dx
+                ui_awc_offset_extend_dy = p_i_dy
+        ELIF (p_i_step == def_move_retract) THEN
+                ui_awc_offset_retract_dx = -p_i_dx
+                ui_awc_offset_retract_dy = p_i_dy
+        END

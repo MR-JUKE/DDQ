@@ -1,0 +1,12 @@
+;************************************************************************************************
+; 1. 함수 이름: goto_position(p_i_stnno,p_i_motion_step,p_i_motion_mode)
+;
+; 2. 함수 설명: 입력받은 스텝으로 전환, 입력받은 스테이션 위치로 이동합니다.
+;************************************************************************************************
+;
+.PARAM p_i_stnno,p_i_motion_step,p_i_motion_mode
+;
+;
+        Call set_robot_step(p_i_motion_step)
+        Call set_robot_speed(p_i_stnno,p_i_motion_step,p_i_motion_mode)
+        Call move_motion_point(p_i_stnno,p_i_motion_step)

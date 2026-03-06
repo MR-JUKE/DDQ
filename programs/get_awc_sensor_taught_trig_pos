@@ -1,0 +1,85 @@
+;************************************************************************************************
+; 1. 함수이름 : get_awc_sensor_taught_trig_pos(p_i_stnno,p_i_master_arm,p_i_awc_sensor_pos,p_i_step,#p_o_j_pos_trig1,#p_o_j_pos_trig2,p_o_errcode)
+;
+; 2. 함수 설명 : 터치 프로브 감지 위치를 반환합니다.
+;************************************************************************************************
+;
+.PARAM p_i_stnno,p_i_master_arm,p_i_awc_sensor_pos,p_i_step,#p_o_j_pos_trig1,#p_o_j_pos_trig2,p_o_errcode
+.LOCAL l_idx
+;
+        p_o_errcode = def_err_none
+        Point #p_o_j_pos_trig1 = Joint(0)
+        Point #p_o_j_pos_trig2 = Joint(0)
+;
+;
+        l_idx = p_i_stnno*10
+;
+        IF (p_i_master_arm == def_master_arm_lower) THEN
+                IF (p_i_awc_sensor_pos == def_awc_sensor_left) THEN
+                        IF (p_i_step == def_move_extend) OR (p_i_step == def_move_awc_extend) THEN
+                                Point #p_o_j_pos_trig1 = #j_awc_trig_pos_lowarm[l_idx + def_left_awc_trig_extend_rising]
+                                Point #p_o_j_pos_trig2 = #j_awc_trig_pos_lowarm[l_idx + def_left_awc_trig_extend_falling]
+                        ELIF (p_i_step == def_move_retract) THEN
+                                Point #p_o_j_pos_trig1 = #j_awc_trig_pos_lowarm[l_idx + def_left_awc_trig_retract_rising]
+                                Point #p_o_j_pos_trig2 = #j_awc_trig_pos_lowarm[l_idx + def_left_awc_trig_retract_falling]
+                        ELSE
+                                TPWrite 0,"[get_awc_sensor_taught_trig_pos] UNKNOWN MOTION STEP(LOWER LEFT)"
+                                p_o_errcode = def_err_motion_step
+                                Return
+                        END
+;
+                ELIF (p_i_awc_sensor_pos == def_awc_sensor_right) THEN
+                        IF (p_i_step == def_move_extend) OR (p_i_step == def_move_awc_extend) THEN
+                                Point #p_o_j_pos_trig1 = #j_awc_trig_pos_lowarm[l_idx + def_right_awc_trig_extend_rising]
+                                Point #p_o_j_pos_trig2 = #j_awc_trig_pos_lowarm[l_idx + def_right_awc_trig_extend_falling]
+                        ELIF (p_i_step == def_move_retract) THEN
+                                Point #p_o_j_pos_trig1 = #j_awc_trig_pos_lowarm[l_idx + def_right_awc_trig_retract_rising]
+                                Point #p_o_j_pos_trig2 = #j_awc_trig_pos_lowarm[l_idx + def_right_awc_trig_retract_falling]
+                        ELSE
+                                TPWrite 0,"[get_awc_sensor_taught_trig_pos] UNKNOWN MOTION STEP(LOWER RIGHT)"
+                                p_o_errcode = def_err_motion_step
+                                Return
+                        END
+                ELSE
+                        TPWrite 0,"[get_awc_sensor_taught_trig_pos] UNKNOWN AWC SENSOR POS PARAM(LOWER ARM)"
+                        p_o_errcode = def_err_unknown_param
+                        Return
+                END
+;
+        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                IF (p_i_awc_sensor_pos == def_awc_sensor_left) THEN
+                        IF (p_i_step == def_move_extend) OR (p_i_step == def_move_awc_extend) THEN
+                                Point #p_o_j_pos_trig1 = #j_awc_trig_pos_uparm[l_idx + def_left_awc_trig_extend_rising]
+                                Point #p_o_j_pos_trig2 = #j_awc_trig_pos_uparm[l_idx + def_left_awc_trig_extend_falling]
+                        ELIF (p_i_step == def_move_retract) THEN
+                                Point #p_o_j_pos_trig1 = #j_awc_trig_pos_uparm[l_idx + def_left_awc_trig_retract_rising]
+                                Point #p_o_j_pos_trig2 = #j_awc_trig_pos_uparm[l_idx + def_left_awc_trig_retract_falling]
+                        ELSE
+                                TPWrite 0,"[get_awc_sensor_taught_trig_pos] UNKNOWN MOTION STEP(UPPER LEFT)"
+                                p_o_errcode = def_err_motion_step
+                                Return
+                        END
+;
+                ELIF (p_i_awc_sensor_pos == def_awc_sensor_right) THEN
+                        IF (p_i_step == def_move_extend) OR (p_i_step == def_move_awc_extend) THEN
+                                Point #p_o_j_pos_trig1 = #j_awc_trig_pos_uparm[l_idx + def_right_awc_trig_extend_rising]
+                                Point #p_o_j_pos_trig2 = #j_awc_trig_pos_uparm[l_idx + def_right_awc_trig_extend_falling]
+                        ELIF (p_i_step == def_move_retract) THEN
+                                Point #p_o_j_pos_trig1 = #j_awc_trig_pos_uparm[l_idx + def_right_awc_trig_retract_rising]
+                                Point #p_o_j_pos_trig2 = #j_awc_trig_pos_uparm[l_idx + def_right_awc_trig_retract_falling]
+                        ELSE
+                                TPWrite 0,"[get_awc_sensor_taught_trig_pos] UNKNOWN MOTION STEP(UPPER RIGHT)"
+                                p_o_errcode = def_err_motion_step
+                                Return
+                        END
+                ELSE
+                        TPWrite 0,"[get_awc_sensor_taught_trig_pos] UNKNOWN AWC SENSOR POS PARAM(UPPER ARM)"
+                        p_o_errcode = def_err_unknown_param
+                        Return
+                END
+;
+        ELSE
+                TPWrite 0,"[get_awc_sensor_taught_trig_pos] UNKNOWN MASTER ARM"
+                p_o_errcode = def_err_master_arm
+                Return
+        END

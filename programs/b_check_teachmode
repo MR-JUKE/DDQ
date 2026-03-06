@@ -1,0 +1,20 @@
+;************************************************************************************************
+; 1. 함수 이름 : b_check_teachmode()
+;
+; 2. 함수 설명 : TEACH MODE로 전환되면 모든 스테이션의 RETRACT 출력 신호를 끄고 및 HOME, SAFE POSE BIT를 FALSE로 설정합니다.
+;************************************************************************************************
+;
+        g_cur_isteach = IsTeach
+
+        IF (g_pre_isteach <> g_cur_isteach) THEN
+                g_pre_isteach = g_cur_isteach
+;
+                IF (g_cur_isteach == TRUE) THEN
+                        TPWrite 0,"[TEACH MODE]"
+                        Call set_signal_retract(def_null_station,def_signal_off_all)
+                        Call set_status_home(FALSE)
+                        Call set_status_safepose(FALSE)
+                ELSE
+                        TPWrite 0,"[AUTO MODE]"
+                END
+        END

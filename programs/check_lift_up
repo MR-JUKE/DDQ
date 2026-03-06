@@ -1,0 +1,23 @@
+;************************************************************************************************
+; 1. 함수 이름 : check_lift_up()
+; 2. 함수 설명 : LOAD LOCK의 LIFT가 UP 상태인지 EXTERNAL INPUT 신호를 통해 확인합니다.
+;************************************************************************************************
+.PARAM p_i_stnno,p_o_is_lift_up
+.LOCAL l_dinput_num_lift,l_sig_lift,l_is_lift_up
+;
+;
+        l_is_lift_up = TRUE
+;
+        IF (g_set_interlock_lift == TRUE) THEN
+                l_dinput_num_lift = ui_stn_signal_input_lift[p_i_stnno]
+                l_sig_lift = Sig(1000+l_dinput_num_lift)
+;
+                IF (l_dinput_num_lift <> 0) THEN
+                        IF (l_sig_lift <> FALSE) THEN
+                                TPWrite 0,"[check_lift_up] LIFT DOWN"
+                                l_is_lift_up = FALSE
+                        END
+                END
+        END
+;
+        p_o_is_lift_up = l_is_lift_up

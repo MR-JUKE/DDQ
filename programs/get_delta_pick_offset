@@ -1,0 +1,12 @@
+;************************************************************************************************
+; 1. 함수 이름: get_delta_pick_offset()
+;
+; 2. 함수 설명: DELTA PICK 동작을 수행하기 위해 UI에서 저장한 Delta Pick Offset 값을 반환합니다.
+;
+; 3. Defined Error Code:
+;************************************************************************************************
+;
+.PARAM p_o_offset_x,p_o_offset_y
+;
+        p_o_offset_x = pick_ofst_x ; 'pick_ofst_x' : UI Delta Pick Offset X 값.
+        p_o_offset_y = pick_ofst_y ; 'pick_ofst_y' : UI Delta Pick Offset Y 값.

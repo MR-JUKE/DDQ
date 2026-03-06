@@ -1,0 +1,259 @@
+;************************************************************************************************
+; 1. 함수 이름 : def_constants()
+;
+; 2. 함수 설명 : 매크로에서 사용되는 상수들을 정의합니다.
+;************************************************************************************************
+;
+;================================================================================================
+; UI SHARED CONSTANTS
+;================================================================================================
+    hand_gap = 16.5                 ; LOWER, UPPER HAND의 Z방향 높이 차이를 입력합니다. UI UPPER -> LOWER, LOWER -> UPPER COPY LOCATION 시 Z축의 GAP 설정  (UI: Read, ROBOT: Write)
+    max_stn_num = 20                ; UI TEACHING 가능한 STATION 최대 갯수 정보  (UI: Read, ROBOT: Write)
+    max_slot_num = 100              ; UI TEACHING 가능한 SLOT 최대 갯수 정보  (UI: Read, ROBOT: Write)
+    def_rad_wafer = 150
+;
+;
+;================================================================================================
+; DEFINE ROBOT NAME
+;================================================================================================
+    $def_robot_name = $robot_name
+;
+;
+;================================================================================================
+; DEFINE ROBOT NAME
+;================================================================================================
+    def_tolerance_safepose = 5
+;
+;
+;================================================================================================
+; DEFINE ROBOT CONFIG PARAMETER, 변수명 경로 /mnt/mtd5/RaonTec/Config/json RobotConfigParameter.json
+;================================================================================================
+    def_robot_acctime = robotconf_acctime
+    def_robot_link_len = robotconf_link_length
+    def_robot_tool_len = robotconf_tool_length
+    def_robot_home_ofst = -robotconf_home_offset
+    def_robot_va_speed_z_axis = robotconf_va_speed_z_axis
+    def_robot_master_slave_angle_diff = robotconf_master_slave_angle_diff
+;
+;
+;================================================================================================
+; DEFINE JOINT AXIS INDEX
+;================================================================================================
+    def_max_axis_num = 4
+    def_axis_z = 1
+    def_axis_t = 2
+    def_axis_l = 3
+    def_axis_u = 4
+;
+;
+;================================================================================================
+; DEFINE EXTEND SIGNAL CONTROL
+;================================================================================================
+    def_signal_on_all = 1
+    def_signal_off_all = 2
+    def_signal_on = 3
+    def_signal_off = 4
+;
+;
+;================================================================================================
+; DEFINE NULL
+;================================================================================================
+    def_null = 0
+    def_null_station = 0
+;
+;
+;================================================================================================
+; DEFINE COMMANDS
+;================================================================================================
+    def_max_cmd = 8
+    def_cmd_none = 0
+    def_cmd_pick = 1
+    def_cmd_place = 2
+    def_cmd_wcheck = 3
+    def_cmd_delta_pick = 4
+    def_cmd_expick = 5
+    def_cmd_explace = 6
+    def_cmd_repick = 7
+    def_cmd_replace = 8
+;
+;
+;================================================================================================
+; DEFINE RQ PRESENT STATUS
+;================================================================================================
+    def_rq_present_none = 0
+    def_rq_present_retract = 1
+    def_rq_present_extend = 2
+    def_rq_present_down = 1
+    def_rq_present_up = 2
+;
+;
+;================================================================================================
+; DEFINE ROBOT ARM MODE INDEX
+;================================================================================================
+    def_max_arm_mode = 2
+    def_arm_mode_none = 0
+    def_arm_mode_single = 1
+    def_arm_mode_dual = 2
+;
+;
+;================================================================================================
+; DEFINE ROBOT MASTER ARM INDEX
+;================================================================================================
+    def_max_master_arm = 6
+    def_master_arm_none = 0
+    def_master_arm_l = 1
+    def_master_arm_u = 2
+    def_master_arm_ll = 3
+    def_master_arm_lr = 4
+    def_master_arm_ul = 5
+    def_master_arm_ur = 6
+;
+; Backward compatibility aliases
+    def_master_arm_lower = def_master_arm_l
+    def_master_arm_upper = def_master_arm_u
+;
+;
+;================================================================================================
+; DEFINE E/E PRIORITY
+;================================================================================================
+    def_ee_priority_left = 1
+    def_ee_priority_right = 2
+;
+;
+;================================================================================================
+; DEFINE STATION LEVEL
+;================================================================================================
+    def_stn_level_same = 1
+    def_stn_level_diff = 2
+;
+;
+;================================================================================================
+; DEFINE WAFER QUANTITY
+;================================================================================================
+    def_max_wfr_qty = 2
+    def_qty_wfr_none = 0
+    def_qty_wfr_1ea = 1
+    def_qty_wfr_2ea = 2
+;
+;
+;================================================================================================
+; DEFINE INTERLOCK INDEX
+;================================================================================================
+    def_max_interlock = 8
+    def_interlock_mask_gate = 1
+    def_interlock_mask_fan = 2
+    def_interlock_mask_awc = 4
+    def_interlock_mask_lift = 8
+    def_interlock_mask_present_sensor = 16
+    def_interlock_mask_ahs = 32
+    def_interlock_mask_wafer_slide = 64
+    def_interlock_mask_wafer_data_check = 128
+;
+;
+;================================================================================================
+; DEFINE ROBOT STEP
+;================================================================================================
+    def_move_none = 0
+    def_move_home = 1
+    def_move_safepose = 2
+    def_move_waitpose = 3
+    def_move_extend = 4
+    def_move_up = 5
+    def_move_teach = 6
+    def_move_down = 7
+    def_move_retract = 8
+    def_move_awc_via = 9
+    def_move_awc_extend = 10
+    def_move_awc_teach = 11
+    def_move_awc_down = 12
+    def_move_awc_retract = 13
+;
+;
+;================================================================================================
+; TOUCH PROBE INDEX
+;================================================================================================
+    def_touchprobe_1 = 1
+    def_touchprobe_2 = 2
+;
+;
+;================================================================================================
+; TOUCH PROBE USAGE CHANNEL
+;================================================================================================
+    def_awc_touchprobe_channel_none = 0
+    def_awc_touchprobe_channel_single = 1
+    def_awc_touchprobe_channel_dual = 2
+;
+;
+;================================================================================================
+; SELECT AWC SENSOR INDEX
+;================================================================================================
+    def_awc_select_both = 0
+    def_awc_select_left = 1
+    def_awc_select_right = 2
+;
+;
+;================================================================================================
+; AWC SENSOR POSITION
+;================================================================================================
+    def_awc_sensor_left = 1
+    def_awc_sensor_right = 2
+;
+;
+;================================================================================================
+; AWC TOUCH PROBE LATCH MODE
+;================================================================================================
+    def_latchmode_risingfalling = 1
+    def_latchmode_fallingrising = 2
+    def_latchmode_rising = 3
+    def_latchmode_falling = 4
+    def_latchmode_conti_rising = 5
+    def_latchmode_conti_falling = 6
+;
+;
+;================================================================================================
+; AWC SENSOR TRIGGER POSE INDEX
+;================================================================================================
+; AWC 센서 Trigger 위치 Joint 좌표를 저장하는 '#j_awc_trig_pos_left_sensor[]', '#j_awc_trig_pos_right_sensor[]' 변수에 사용됩니다.
+    def_max_awc_trig_pos_index = 8
+    def_left_awc_trig_extend_rising = 0
+    def_left_awc_trig_extend_falling = 1
+    def_left_awc_trig_retract_rising = 2
+    def_left_awc_trig_retract_falling = 3
+    def_right_awc_trig_extend_rising = 4
+    def_right_awc_trig_extend_falling = 5
+    def_right_awc_trig_retract_rising = 6
+    def_right_awc_trig_retract_falling = 7
+;
+;
+;================================================================================================
+; AWC SENSOR POS INDEX
+;================================================================================================
+; AWC 센서 위치 Trans 좌표를 저장하는 't_awc_pos_left_sensor[]','t_awc_pos_right_sensor[]' 변수에 사용됩니다.
+    def_max_awc_pos_index = 4
+    def_left_awc_pos_extend = 0
+    def_left_awc_pos_retract = 1
+    def_right_awc_pos_extend = 2
+    def_right_awc_pos_retract = 3
+;
+;
+;================================================================================================
+; WAFER DETECT FAIL POSITION
+;================================================================================================
+    def_wfr_detect_fail_pos_retract = 0
+    def_wfr_detect_fail_pos_extend = 1
+;
+;
+;================================================================================================
+; UI MAIN SPEED INDEX
+;================================================================================================
+    def_ui_main_speed_none = 0
+    def_ui_main_speed_low = 1
+    def_ui_main_speed_mid = 2
+    def_ui_main_speed_high = 3
+;
+;
+;================================================================================================
+; MOTION MODE (GOTO, CMD MOTION)
+;================================================================================================
+    def_motion_mode_goto = 1
+    def_motion_mode_cmd = 2

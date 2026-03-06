@@ -1,0 +1,93 @@
+;************************************************************************************************
+; 1. 함수 이름 : b_set_interlocks()
+; 2. 함수 설명 : UI에서 로봇 인터락 설정값 변경 시 로봇 인터락 사용 유/무 변수들을 TRUE/FALSE로 설정합니다.
+;************************************************************************************************
+;
+.LOCAL $l_str,l_is_defined
+;
+;
+;       ; Interlock 변수 'lock_mode'가 선언되어있는지 확인 후 선언되지 않았으면 'lock_mode' 선언.
+;       ; 'lock_mode' 변수는 인터락 값(binary)이 저장되는 변수. UI에서 인터락 조작 시 해당 변수 값이 변경됨.
+;        $l_str = "lock_mode"
+;        l_is_defined = Defined($l_str)
+;        IF (l_is_defined == FALSE) THEN
+;                lock_mode = 0
+;        END
+;
+        g_cur_interlock_mode = lock_mode ; lock_mode: UI에서 Write하는 Interlock mask 변수
+;
+        IF (g_pre_interlock_mode <> g_cur_interlock_mode) THEN
+                TPWrite 0,"[CHANGE INTERLOCKS STATUS]"
+                g_pre_interlock_mode = g_cur_interlock_mode
+;
+                IF (g_cur_interlock_mode BAND def_interlock_mask_gate) THEN
+                        g_set_interlock_gate = TRUE
+                        TPWrite 0,"--> [O N] GATE V/V INTERLOCK"
+                ELSE
+                        g_set_interlock_gate = FALSE
+                        TPWrite 0,"--> [OFF] GATE V/V INTERLOCK"
+                END      
+;
+                IF (g_cur_interlock_mode BAND def_interlock_mask_fan) THEN
+                        g_set_interlock_fan = TRUE
+                        TPWrite 0,"--> [O N] FAN INTERLOCK"
+                ELSE
+                        g_set_interlock_fan = FALSE
+                        TPWrite 0,"--> [OFF] FAN INTERLOCK"
+                END
+;
+                IF (g_cur_interlock_mode BAND def_interlock_mask_awc) THEN
+                        g_set_interlock_awc = TRUE
+                        TPWrite 0,"--> [O N] AWC INTERLOCK"
+                ELSE
+                        g_set_interlock_awc = FALSE
+                        TPWrite 0,"--> [OFF] AWC INTERLOCK"
+                END
+;
+                IF (g_cur_interlock_mode BAND def_interlock_mask_lift) THEN
+                        g_set_interlock_lift = TRUE
+                        TPWrite 0,"--> [O N] LIFT INTERLOCK"
+                ELSE
+                        g_set_interlock_lift = FALSE
+                        TPWrite 0,"--> [OFF] LIFT INTERLOCK"
+                END
+;
+                IF (g_cur_interlock_mode BAND def_interlock_mask_present_sensor) THEN
+                        g_set_interlock_present_sensor = TRUE
+                        TPWrite 0,"--> [O N] PRESENT SENSOR INTERLOCK"
+                ELSE
+                        g_set_interlock_present_sensor = FALSE
+                        TPWrite 0,"--> [OFF] PRESENT SENSOR INTERLOCK"
+                END
+;
+                IF (g_cur_interlock_mode BAND def_interlock_mask_ahs) THEN
+                        g_set_interlock_ahs = TRUE
+                        TPWrite 0,"--> [O N] AHS INTERLOCK"
+                ELSE
+                        g_set_interlock_ahs = FALSE
+                        TPWrite 0,"--> [OFF] AHS INTERLOCK"
+                END
+;
+                IF (g_cur_interlock_mode BAND def_interlock_mask_wafer_slide) THEN
+                        g_set_interlock_wafer_slide = TRUE
+                        TPWrite 0,"--> [O N] WAFER SLIDE INTERLOCK"
+                ELSE
+                        g_set_interlock_wafer_slide = FALSE
+                        TPWrite 0,"--> [OFF] WAFER SLIDE INTERLOCK"
+                END
+;
+                IF (g_cur_interlock_mode BAND def_interlock_mask_wafer_data_check) THEN
+                        g_set_interlock_wafer_data_check = TRUE
+                        TPWrite 0,"--> [O N] WAFER DATA CHECK INTERLOCK"
+                ELSE
+                        g_set_interlock_wafer_data_check = FALSE
+                        TPWrite 0,"--> [OFF] WAFER DATA CHECK INTERLOCK"
+                END
+                ;
+                ;g_set_interlock_gate = -(g_cur_interlock_mode BAND def_interlock_mask_gate)
+                ;g_set_interlock_fan = -(g_cur_interlock_mode BAND def_interlock_mask_fan)
+                ;g_set_interlock_awc = -(g_cur_interlock_mode BAND def_interlock_mask_awc)
+                ;g_set_interlock_grip = -(g_cur_interlock_mode BAND def_interlock_mask_grip)
+                ;g_set_interlock_iswafer = -(g_cur_interlock_mode BAND def_interlock_mask_iswafer)
+                ;g_set_interlock_ahs = -(g_cur_interlock_mode BAND def_interlock_mask_ahs)
+        END

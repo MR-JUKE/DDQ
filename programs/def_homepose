@@ -1,0 +1,11 @@
+;************************************************************************************************
+; 1. 함수 이름 : def_homepose()
+; 2. 함수 설명 : home 위치 좌표를 정의합니다.
+;************************************************************************************************
+;
+        def_homepose_z_axis = 0     ; HOME Z축 좌표 [mm]
+        def_homepose_t_axis = 0     ; HOME T축 좌표 [deg]
+        def_homepose_l_axis = 0     ; HOME L축 좌표 [mm]
+        def_homepose_u_axis = 0     ; HOME U축 좌표 [mm]
+;
+        Point #j_point_home = Joint(def_homepose_z_axis,def_homepose_t_axis,def_homepose_l_axis,def_homepose_u_axis)   ; HOME 위치 좌표 선언

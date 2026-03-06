@@ -1,0 +1,41 @@
+;************************************************************************************************
+; 1. 함수이름 : calc_quadratic_formula(p_i_a,p_i_b,p_i_c,p_o_roots_count,p_o_roots1,p_o_roots2)
+; 2. 함수 설명 : 근의 공식 함수 
+;  - 1차 방정식 = a*X^2 + b*X + c
+;
+;                -b ± sqrt(b^2-4ac)                                          D > 0 , 두 실근을 가진다
+;  - 근의 공식 = ───────────────────   ,  이차 방정식의 판별식 D = b^2 - 4ac , D = 0 , 중근을 가진다
+;                       2a                                                   D < 0 , 서로 다른 두허근을 가진다
+;
+;************************************************************************************************
+.PARAM p_i_a,p_i_b,p_i_c,p_o_roots_count,p_o_roots1,p_o_roots2
+.LOCAL l_math_discriminant
+;
+;
+        p_o_roots_count = 0
+        p_o_roots1 = 0
+        p_o_roots2 = 0
+        l_math_discriminant = 0
+;
+;================================================================================================
+;      판별식 확인하기
+;================================================================================================
+        l_math_discriminant = (p_i_b*p_i_b)-(4*p_i_a*p_i_c)
+        TPWrite 0,"[calc_quadratic_formula] Discriminant D = %f ",l_math_discriminant
+;
+        IF (l_math_discriminant>0) THEN
+                TPWrite 0,"[calc_quadratic_formula] The equation has two distinct real roots."
+                p_o_roots_count = 2
+        ELIF (l_math_discriminant == 0) THEN
+                TPWrite 0,"[calc_quadratic_formula] The equation has one real root (a repeated root)."
+                p_o_roots_count = 1
+        ELIF (l_math_discriminant<0) THEN
+                TPWrite 0,"[calc_quadratic_formula] The equation has two complex (imaginary) roots."
+                p_o_roots_count = 0
+                Return
+        END
+;================================================================================================
+;      근의 공식 반환 해주기
+;================================================================================================
+        p_o_roots1 = (-p_i_b+Sqrt(l_math_discriminant))/(2*p_i_a)
+        p_o_roots2 = (-p_i_b-Sqrt(l_math_discriminant))/(2*p_i_a)

@@ -1,0 +1,510 @@
+;************************************************************************************************
+; 1. 함수 이름: cmd_awc_teaching()
+;
+; 2. 함수 설명 : AWC Teaching 기능을 수행하는 최상위 함수입니다.
+;              EXTEND 동작, RETRACT 동작에 대해 AWC 센서 위치를 각각 저장합니다.
+;              (EXTEND, RETRACT 동작의 경로가 다를 수 있기 때문.)
+;
+; 3. Defined Error Code: ERR_7.0 ~ 7.15
+;************************************************************************************************
+;
+.LOCAL l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm
+.LOCAL l_cur_ui_cmd,l_cur_ui_stnno,l_cur_ui_slotno,l_cur_ui_arm_mode,l_cur_ui_master_arm
+.LOCAL l_ret_is_safepose,l_ret_errcode,l_err_count
+;
+;
+        ui_cur_cmd = def_cmd_place ; ui 명령 변수 중 명령 값을 'def_cmd_place'로 강제로 설정합니다.
+        Call get_cur_ui_cmd_var(l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm)
+        TPWrite 0,"=============== STATION %d-%d AWC TEACHING ===============",l_ret_stnno,l_ret_slotno
+        l_cur_ui_cmd = l_ret_cmd
+        l_cur_ui_stnno = l_ret_stnno
+        l_cur_ui_slotno = l_ret_slotno
+        l_cur_ui_arm_mode = l_ret_arm_mode
+        l_cur_ui_master_arm = l_ret_master_arm
+;
+        IF (l_cur_ui_cmd <> def_cmd_place) THEN
+                TPWrite 0,"[cmd_awc_teaching] ERR_7.0: WRONG COMMAND: %d",l_cur_ui_cmd
+                RaiseError  -def_err_command_param
+                Return
+        END
+;
+        IF (l_cur_ui_arm_mode == def_arm_mode_dual) THEN
+                TPWrite 0,"[cmd_awc_teaching] ERR_7.1: NOT SUPPORTED AWC FUNCTION IN DUAL ARM"
+                RaiseError  -def_err_arm_mode
+                Return
+        END
+;
+        Call check_interlocks(l_cur_ui_stnno,def_move_waitpose,l_ret_errcode)
+        IF (l_ret_errcode <> def_err_none) THEN
+                TPWrite 0,"[cmd_awc_teaching] ERR_7.2: INTERLOCK ERROR"
+                RaiseError  -l_ret_errcode
+                Return
+        END
+;
+;
+;******** Wafer Present, Wafer Slide, AWC, Door 기능 활성화/비활성화 여부를 저장한다.
+.LOCAL l_ret_is_on
+.LOCAL l_is_wafer_present_interlock_on,l_is_enabled_wfr_present_param,l_is_wafer_present_on
+.LOCAL l_is_wafer_slide_interlock_on,l_is_enabled_wafer_slide_param,l_is_wafer_slide_on
+.LOCAL l_is_awc_interlock_on,l_is_enabled_awc_param,l_is_awc_on
+.LOCAL l_is_gate_interlock_on
+;
+        Call get_status_interlock(def_interlock_mask_present_sensor,l_ret_is_on)
+        l_is_wafer_present_interlock_on = l_ret_is_on
+        l_is_enabled_wfr_present_param = ui_stn_wafer_detection_enable[l_cur_ui_stnno]
+;
+        l_is_wafer_present_on = (l_is_wafer_present_interlock_on == TRUE) AND (l_is_enabled_wfr_present_param <> FALSE); WAFER PRESENT ON/OFF 여부가 저장된 변수
+;
+        Call get_status_interlock(def_interlock_mask_wafer_slide,l_ret_is_on)
+        l_is_wafer_slide_interlock_on = l_ret_is_on
+        l_is_enabled_wafer_slide_param = ui_stn_awc_enable_wafer_slide[l_cur_ui_stnno]
+;
+        l_is_wafer_slide_on = (l_is_wafer_slide_interlock_on == TRUE) AND (l_is_enabled_wafer_slide_param <> FALSE); WAFER SLIDE ON/OFF 여부가 저장된 변수 
+;
+        Call get_status_interlock(def_interlock_mask_awc,l_ret_is_on)
+        l_is_awc_interlock_on = l_ret_is_on
+        l_is_enabled_awc_param = ui_stn_awc_enable[l_cur_ui_stnno]
+;
+        l_is_awc_on = (l_is_awc_interlock_on == TRUE) AND (l_is_enabled_awc_param <> FALSE); AWC ON/OFF 여부가 저장된 변수
+;
+        Call get_status_interlock(def_interlock_mask_gate,l_ret_is_on)
+        l_is_gate_interlock_on = l_ret_is_on
+;
+;
+        Call set_robot_process(l_cur_ui_cmd,l_cur_ui_stnno,l_cur_ui_slotno,l_cur_ui_arm_mode,l_cur_ui_master_arm)
+        Call set_seq_start(TRUE)
+;
+        WHILE (TRUE == g_flag_seq_start) DO
+                IF (g_pre_seqno <> g_cur_seqno) THEN
+                        g_pre_seqno = g_cur_seqno
+                        l_err_count = 0
+                END
+;
+;*******************************************************************************************************************
+; SEQ 1: 저장된 로봇 처리 변수 값을 읽어 저장합니다.
+;*******************************************************************************************************************
+                IF (g_cur_seqno == 1) THEN
+;
+                .LOCAL l_cur_robot_cmd,l_cur_robot_stnno,l_cur_robot_slotno,l_cur_robot_arm_mode,l_cur_robot_master_arm
+;
+                        TPWrite 0,"SEQUENCE START"
+                        Call get_cur_robot_process(l_ret_cmd,l_ret_stnno,l_ret_slotno,l_ret_arm_mode,l_ret_master_arm)
+                        l_cur_robot_cmd = l_ret_cmd
+                        l_cur_robot_stnno = l_ret_stnno
+                        l_cur_robot_slotno = l_ret_slotno
+                        l_cur_robot_arm_mode = l_ret_arm_mode
+                        l_cur_robot_master_arm = l_ret_master_arm
+;
+                        g_cur_seqno = 10
+;
+;*******************************************************************************************************************
+; SEQ 10: 게이트, 리프트 인터락을 확인하고 웨이퍼 데이터가 있는지, SAFE POSE 위치인지 확인합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 10) THEN
+;
+                .LOCAL l_ret_is_gate_open,l_ret_is_lift_up
+;
+                        Call check_gate_open(l_cur_robot_stnno,l_ret_is_gate_open) ; STATION DOOR 열림 여부 확인
+                        IF (l_ret_is_gate_open <> TRUE) THEN
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_awc_teaching] ERR_7.3: GATE CLOSE"
+                                RaiseError  -def_err_gate_open
+                        END
+;
+                        Call check_lift_up(l_cur_robot_stnno,l_ret_is_lift_up) ; LIFT UP 여부 확인
+                        IF (l_ret_is_lift_up <> TRUE) THEN
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_awc_teaching] ERR_7.4: LIFT UP"
+                                RaiseError  -def_err_lift
+                        END
+;
+                        Call check_wafer_data(l_cur_robot_cmd,l_cur_robot_arm_mode,l_cur_robot_master_arm,l_ret_errcode)
+                        IF (l_ret_errcode <> def_err_none) THEN
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_awc_teaching] ERR_7.5: INAPPROPRIATE WAFER DATA"
+                                RaiseError  -l_ret_errcode
+                        END
+;
+                        Call check_safe_pose(l_ret_is_safepose)
+                        IF (l_ret_is_safepose <> TRUE) THEN
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_awc_teaching] ERR_7.6: NOT IN SAFE POSE"
+                                RaiseError  -def_err_is_safe_pose
+                        ELSE
+                                Call set_status_safepose(TRUE)
+                                Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_none)
+                        END
+;
+                        g_cur_seqno = 20
+;
+;*******************************************************************************************************************
+; SEQ 20: SAFEPOSE 위치로 이동합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 20) THEN
+                        ;Call goto_safepose()
+;
+                        g_cur_seqno = 30
+;
+;*******************************************************************************************************************
+; SEQ 30: 로봇 모션 포인트를 설정하고 AWC 티칭 반복 횟수 변수를 1로 초기화합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 30) THEN
+                        Call set_robot_waypoints(l_cur_robot_cmd,l_cur_robot_stnno,l_cur_robot_slotno,l_cur_robot_arm_mode,l_cur_robot_master_arm)
+                        ui_cur_awc_cnt = 1 ; AWC 반복 횟수 변수
+;
+                        g_cur_seqno = 40
+;
+;*******************************************************************************************************************
+; SEQ 40: WAIT POSE 위치로 이동합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 40) THEN
+
+;                       ; PLACE 명령이므로 웨이퍼가 존재하는 상태라고 가상으로 설정합니다.
+;                        Call set_vrtl_wafer_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,TRUE)
+;                        Call set_signal_retract(l_cur_robot_stnno,def_signal_on)
+;
+;                        TPWrite 0,"[GOTO WAIT]"
+;                        Call goto_position(l_cur_robot_stnno,def_move_waitpose,def_motion_mode_goto)
+;                        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_up)
+;                        Call set_status_safepose(TRUE)
+;
+;                        g_cur_seqno = 50
+                        IF (ui_cur_awc_cnt <= ui_max_awc_tch_cnt) THEN
+;                               ; PLACE 명령이므로 웨이퍼가 존재하는 상태라고 가상으로 설정합니다.
+                                Call set_vrtl_wafer_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,TRUE)
+                                Call set_signal_retract(l_cur_robot_stnno,def_signal_on)
+;
+                                TPWrite 0,"[GOTO WAIT]"
+                                Call goto_position(l_cur_robot_stnno,def_move_waitpose,def_motion_mode_goto)
+                                Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_up)
+                                Call set_status_safepose(TRUE)
+;
+                                g_cur_seqno = 50
+;
+                        ELSE
+                                g_cur_seqno = 130
+                        END
+;
+;*******************************************************************************************************************
+; SEQ 50: WAFER PRESENT 인터락 여부에 따라 기능 활성화, 터치 프로브 기능을 활성화합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 50) THEN
+                        l_is_wafer_present_on = (l_is_wafer_present_interlock_on == TRUE) AND (l_is_enabled_wfr_present_param <> FALSE)
+                        IF (l_is_wafer_present_on == TRUE) THEN
+                                TPWrite 0,"[ENABLE WAFER PRESENT CHECK]"
+                                Call enable_wafer_present_check(TRUE)
+                        END
+;
+;
+                        IF (l_is_gate_interlock_on == TRUE) THEN
+                                TPWrite 0,"[ENABLE GATE CHECK]"
+                                Call enable_gate_open_check(TRUE)
+                        END
+;
+                        TPWrite 0,"[TOUCH PROBE ON]"
+                        Call set_awc_channel(l_cur_robot_stnno)
+                        Call enable_touch_probe(TRUE,def_latchmode_risingfalling)
+;
+                        g_cur_seqno = 60
+;
+;*******************************************************************************************************************
+; SEQ 60: AWC VIA 위치로 이동합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 60) THEN
+;
+                .LOCAL l_ret_is_mismatch,l_ret_is_error
+;
+                        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_extend,def_rq_present_up)
+                        Call set_signal_retract(l_cur_robot_stnno,def_signal_off)
+                        Call set_status_safepose(FALSE)
+;
+                        TPWrite 0,"[GOTO AWC VIA]"
+                        Call goto_position(l_cur_robot_stnno,def_move_awc_via,def_motion_mode_goto)
+;
+                        Call enable_touch_probe(FALSE)
+;
+                        Call get_wafer_presence_mismatch(l_ret_is_mismatch)
+                        Call enable_wafer_present_check(FALSE)
+;
+                        Call get_gate_open_error(l_ret_is_error)
+                        Call enable_gate_open_check(FALSE)
+;
+                        IF ((l_ret_is_mismatch == TRUE) OR (l_ret_is_error == TRUE)) THEN
+                                WaitTime 1
+                                IF (ui_stn_option_wfr_det_fail[l_cur_robot_stnno] == def_wfr_detect_fail_pos_retract) THEN
+                                        Call goto_safepose()
+                                        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_up)
+                                END
+;
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_awc_teaching] ERR_7.7: WAFER PRESENCE MISMATCH. NO WAFER"
+                                RaiseError  -def_err_wafer_present
+                        END
+;
+                        g_cur_seqno = 70
+;
+;*******************************************************************************************************************
+; SEQ 70: EXTEND 위치로 이동합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 70) THEN
+;
+                        TPWrite 0, "[GOTO EXTEND]"
+                        Call goto_position(l_cur_robot_stnno,def_move_extend,def_motion_mode_goto)
+;
+                        WaitTime ui_stn_timer_extend_delay[l_cur_robot_stnno]
+;
+                        g_cur_seqno = 80
+;
+;*******************************************************************************************************************
+; SEQ 80: EXTEND 동작 시 AWC 센서에 트리거된 로봇의 위치를 가져와 저장합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 80) THEN
+;
+                .LOCAL l_use_awc_sensor
+                .LOCAL l_is_left_awc_enabled,l_is_right_awc_enabled
+                .LOCAL l_ret_errcode
+                .LOCAL #l_ret_trig_pos_rising,#l_ret_trig_pos_falling
+;
+                        l_use_awc_sensor = FALSE
+                        l_is_left_awc_enabled = FALSE
+                        l_is_right_awc_enabled = FALSE
+                        l_ret_errcode = def_err_none
+                        Point #l_ret_trig_pos_rising = Joint(0)
+                        Point #l_ret_trig_pos_falling = Joint(0)
+;
+                        l_use_awc_sensor = ui_stn_awc_select[l_cur_robot_stnno]; UI PARAM에 설정된 AWC 센서 사용 설정 값 Read.
+;
+                        l_is_left_awc_enabled = ((l_use_awc_sensor == def_awc_select_both) OR (l_use_awc_sensor == def_awc_select_left))
+                        l_is_right_awc_enabled = ((l_use_awc_sensor == def_awc_select_both) OR (l_use_awc_sensor == def_awc_select_right))
+;
+                        IF (l_is_left_awc_enabled) THEN
+                                Call get_awc_sensor_trig_pos(l_cur_ui_stnno,def_awc_sensor_left,#l_ret_trig_pos_rising,#l_ret_trig_pos_falling,l_ret_errcode)
+                                IF (l_ret_errcode <> def_err_none) THEN
+                                        WaitTime 1
+                                        IF (ui_stn_option_wfr_det_fail[l_cur_robot_stnno] == def_wfr_detect_fail_pos_retract) THEN
+                                                Call goto_safepose()
+                                                Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_up)
+                                        END
+;
+                                        Call set_seq_start(FALSE)
+                                        TPWrite 0,"[cmd_awc_teaching] ERR_7.8: LEFT AWC SENSOR TRIGGER POSITION CANNOT BE OBTAINED."
+                                        RaiseError  -l_ret_errcode
+                                END
+;
+                                Point #j_left_awc_trig_pos_extend_rising[ui_cur_awc_cnt] = #l_ret_trig_pos_rising
+                                Point #j_left_awc_trig_pos_extend_falling[ui_cur_awc_cnt] = #l_ret_trig_pos_falling
+                                TPWrite 0,"[AWC LEFT] TRIG POS RISING: %f, %f, %f, %f",GetJ(#l_ret_trig_pos_rising,def_axis_z),GetJ(#l_ret_trig_pos_rising,def_axis_t),GetJ(#l_ret_trig_pos_rising,def_axis_l),GetJ(#l_ret_trig_pos_rising,def_axis_u)
+                                TPWrite 0,"[AWC LEFT] TRIG POS FALLING: %f, %f, %f, %f",GetJ(#l_ret_trig_pos_falling,def_axis_z),GetJ(#l_ret_trig_pos_falling,def_axis_t),GetJ(#l_ret_trig_pos_falling,def_axis_l),GetJ(#l_ret_trig_pos_falling,def_axis_u)
+                        END
+;
+                        IF (l_is_right_awc_enabled) THEN
+                                Call get_awc_sensor_trig_pos(l_cur_ui_stnno,def_awc_sensor_right,#l_ret_trig_pos_rising,#l_ret_trig_pos_falling,l_ret_errcode)
+                                IF (l_ret_errcode <> def_err_none) THEN
+                                        WaitTime 1
+                                        IF (ui_stn_option_wfr_det_fail[l_cur_robot_stnno] == def_wfr_detect_fail_pos_retract) THEN
+                                                Call goto_safepose()
+                                                Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_up)
+                                        END
+;
+                                        Call set_seq_start(FALSE)
+                                        TPWrite 0,"[cmd_awc_teaching] ERR_7.9: RIGHT AWC SENSOR TRIGGER POSITION CANNOT BE OBTAINED."
+                                        RaiseError  -l_ret_errcode
+                                END
+;
+                                Point #j_right_awc_trig_pos_extend_rising[ui_cur_awc_cnt] = #l_ret_trig_pos_rising
+                                Point #j_right_awc_trig_pos_extend_falling[ui_cur_awc_cnt] = #l_ret_trig_pos_falling
+                                TPWrite 0,"[AWC RIGHT] TRIG POS RISING: %f, %f, %f, %f",GetJ(#l_ret_trig_pos_rising,def_axis_z),GetJ(#l_ret_trig_pos_rising,def_axis_t),GetJ(#l_ret_trig_pos_rising,def_axis_l),GetJ(#l_ret_trig_pos_rising,def_axis_u)
+                                TPWrite 0,"[AWC RIGHT] TRIG POS FALLING: %f, %f, %f, %f",GetJ(#l_ret_trig_pos_falling,def_axis_z),GetJ(#l_ret_trig_pos_falling,def_axis_t),GetJ(#l_ret_trig_pos_falling,def_axis_l),GetJ(#l_ret_trig_pos_falling,def_axis_u)
+                        END
+;
+                        g_cur_seqno = 90
+;
+;*******************************************************************************************************************
+; SEQ 90: WAFER PRESENT 인터락 여부에 따라 기능 활성화, 터치 프로브 기능을 활성화합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 90) THEN
+                        IF (l_is_wafer_present_on == TRUE) THEN
+                                TPWrite 0,"[ENABLE WAFER PRESENT CHECK]"
+                                Call enable_wafer_present_check(TRUE)
+                        END 
+;
+                        TPWrite 0,"[TOUCH PROBE ON]"
+                        Call set_awc_channel(l_cur_robot_stnno)
+                        Call enable_touch_probe(TRUE,def_latchmode_risingfalling)
+;
+                        g_cur_seqno = 100
+;
+;*******************************************************************************************************************
+; SEQ 100: WAIT POSE 위치로 이동합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 100) THEN
+                        TPWrite 0,"[GOTO WAIT]"
+                        Call goto_position(l_cur_robot_stnno,def_move_waitpose,def_motion_mode_goto)
+;
+                        Call set_status_rq_present(l_cur_robot_arm_mode,l_cur_robot_master_arm,def_rq_present_retract,def_rq_present_up)
+                        Call set_signal_retract(l_cur_robot_stnno,def_signal_off)
+                        Call set_status_safepose(TRUE)
+;
+                        Call get_wafer_presence_mismatch(l_ret_is_mismatch)
+                        Call enable_wafer_present_check(FALSE)
+                        Call enable_touch_probe(FALSE)
+;
+                        IF (l_ret_is_mismatch == TRUE) THEN
+                                Call set_seq_start(FALSE)
+                                TPWrite 0,"[cmd_awc_teaching] ERR_7.10: WAFER PRESENCE MISMATCH. NO WAFER"
+                                RaiseError -def_err_wafer_present
+                        END
+;
+                        g_cur_seqno = 110
+;
+;*******************************************************************************************************************
+; SEQ 110: WAIT POSE로 복귀 시 AWC 센서에 트리거된 로봇의 위치를 가져와 저장합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 110) THEN
+;
+                .LOCAL l_use_awc_sensor
+                .LOCAL l_is_left_awc_enabled,l_is_right_awc_enabled
+                .LOCAL l_ret_errcode
+                .LOCAL #l_ret_trig_pos_rising,#l_ret_trig_pos_falling
+;
+                        l_use_awc_sensor = FALSE
+                        l_is_left_awc_enabled = FALSE
+                        l_is_right_awc_enabled = FALSE
+                        l_ret_errcode = def_err_none
+                        Point #l_ret_trig_pos_rising = Joint(0)
+                        Point #l_ret_trig_pos_falling = Joint(0)
+;
+;
+                        l_use_awc_sensor = ui_stn_awc_select[l_cur_robot_stnno]; UI PARAM에 설정된 AWC 센서 사용 설정 값 Read.
+;
+                        l_is_left_awc_enabled = ((l_use_awc_sensor == def_awc_select_both) OR (l_use_awc_sensor == def_awc_select_left))
+                        l_is_right_awc_enabled = ((l_use_awc_sensor == def_awc_select_both) OR (l_use_awc_sensor == def_awc_select_right))
+;
+                        IF (l_is_left_awc_enabled) THEN
+                                Call get_awc_sensor_trig_pos(l_cur_ui_stnno,def_awc_sensor_left,#l_ret_trig_pos_rising,#l_ret_trig_pos_falling,l_ret_errcode)
+                                IF (l_ret_errcode <> def_err_none) THEN
+                                        Call set_seq_start(FALSE)
+                                        TPWrite 0,"[cmd_awc_teaching] ERR_7.11: LEFT AWC SENSOR TRIGGER POSITION CANNOT BE OBTAINED."
+                                        RaiseError  -l_ret_errcode
+                                END
+;
+                                Point #j_left_awc_trig_pos_retract_rising[ui_cur_awc_cnt] = #l_ret_trig_pos_rising
+                                Point #j_left_awc_trig_pos_retract_falling[ui_cur_awc_cnt] = #l_ret_trig_pos_falling
+                                TPWrite 0,"[AWC LEFT] TRIG POS RISING: %f, %f, %f, %f",GetJ(#l_ret_trig_pos_rising,def_axis_z),GetJ(#l_ret_trig_pos_rising,def_axis_t),GetJ(#l_ret_trig_pos_rising,def_axis_l),GetJ(#l_ret_trig_pos_rising,def_axis_u)
+                                TPWrite 0,"[AWC LEFT] TRIG POS FALLING: %f, %f, %f, %f",GetJ(#l_ret_trig_pos_falling,def_axis_z),GetJ(#l_ret_trig_pos_falling,def_axis_t),GetJ(#l_ret_trig_pos_falling,def_axis_l),GetJ(#l_ret_trig_pos_falling,def_axis_u)
+                        END
+;
+                        IF (l_is_right_awc_enabled) THEN
+                                Call get_awc_sensor_trig_pos(l_cur_ui_stnno,def_awc_sensor_right,#l_ret_trig_pos_rising,#l_ret_trig_pos_falling,l_ret_errcode)
+                                IF (l_ret_errcode <> def_err_none) THEN
+                                        Call set_seq_start(FALSE)
+                                        TPWrite 0,"[cmd_awc_teaching] ERR_7.12: RIGHT AWC SENSOR TRIGGER POSITION CANNOT BE OBTAINED."
+                                        RaiseError  -l_ret_errcode
+                                END
+;
+                                Point #j_right_awc_trig_pos_retract_rising[ui_cur_awc_cnt] = #l_ret_trig_pos_rising
+                                Point #j_right_awc_trig_pos_retract_falling[ui_cur_awc_cnt] = #l_ret_trig_pos_falling
+                                TPWrite 0,"[AWC RIGHT] TRIG POS RISING: %f, %f, %f, %f",GetJ(#l_ret_trig_pos_rising,def_axis_z),GetJ(#l_ret_trig_pos_rising,def_axis_t),GetJ(#l_ret_trig_pos_rising,def_axis_l),GetJ(#l_ret_trig_pos_rising,def_axis_u)
+                                TPWrite 0,"[AWC RIGHT] TRIG POS FALLING: %f, %f, %f, %f",GetJ(#l_ret_trig_pos_falling,def_axis_z),GetJ(#l_ret_trig_pos_falling,def_axis_t),GetJ(#l_ret_trig_pos_falling,def_axis_l),GetJ(#l_ret_trig_pos_falling,def_axis_u)
+                        END
+;
+                        g_cur_seqno = 120
+;
+;*******************************************************************************************************************
+; SEQ 120: AWC 티칭 횟수가 최대 횟수에 도달했는지 확인합니다. 도달하지 않으면 Seq 40으로 돌아가 반복합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 120) THEN
+                        TPWrite 0,"AWC TEACHING COUNT: %d",ui_cur_awc_cnt
+                        ui_cur_awc_cnt = ui_cur_awc_cnt + 1
+                        g_cur_seqno = 40
+;                        IF (ui_cur_awc_cnt <= ui_max_awc_tch_cnt) THEN
+;                                ui_cur_awc_cnt = ui_cur_awc_cnt + 1
+;                                g_cur_seqno = 40
+;                        ELSE
+;                                g_cur_seqno = 130
+;                        END
+;
+;*******************************************************************************************************************
+; SEQ 130: 첫 번째로 트리거 된 AWC 센서 트리거 위치를 저장하고 AWC 센서 위치를 계산, 저장합니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 130) THEN
+;
+                .LOCAL l_use_awc_sensor
+                .LOCAL l_is_left_awc_enabled,l_is_right_awc_enabled
+                .LOCAL l_ret_errcode
+                .LOCAL #l_j_left_awc_trig_pos[],#l_j_right_awc_trig_pos[]
+;
+                        l_use_awc_sensor = FALSE
+                        l_is_left_awc_enabled = FALSE
+                        l_is_right_awc_enabled = FALSE
+                        l_ret_errcode = def_err_none
+                        Point #l_j_left_awc_trig_pos[] = Joint(0)
+                        Point #l_j_right_awc_trig_pos[] = Joint(0)
+;
+;
+                        l_use_awc_sensor = ui_stn_awc_select[l_cur_robot_stnno]; UI PARAM에 설정된 AWC 센서 사용 설정 값 Read.
+;
+                        l_is_left_awc_enabled = ((l_use_awc_sensor == def_awc_select_both) OR (l_use_awc_sensor == def_awc_select_left))
+                        l_is_right_awc_enabled = ((l_use_awc_sensor == def_awc_select_both) OR (l_use_awc_sensor == def_awc_select_right))
+;
+                        IF (l_is_left_awc_enabled) THEN
+                                Point #l_j_left_awc_trig_pos[1] = #j_left_awc_trig_pos_extend_rising[1]
+                                Point #l_j_left_awc_trig_pos[2] = #j_left_awc_trig_pos_extend_falling[1]
+                                Point #l_j_left_awc_trig_pos[3] = #j_left_awc_trig_pos_retract_rising[1]
+                                Point #l_j_left_awc_trig_pos[4] = #j_left_awc_trig_pos_retract_falling[1]
+                                TPWrite 0,"[LEFT AWC TRIGGER POS]"
+                                TPWrite 0,"TRIG_EX_RISE: %f, %f, %f, %f",GetJ(#l_j_left_awc_trig_pos[1],def_axis_z),GetJ(#l_j_left_awc_trig_pos[1],def_axis_t),GetJ(#l_j_left_awc_trig_pos[1],def_axis_l),GetJ(#l_j_left_awc_trig_pos[1],def_axis_u)
+                                TPWrite 0,"TRIG_EX_FALL: %f, %f, %f, %f",GetJ(#l_j_left_awc_trig_pos[2],def_axis_z),GetJ(#l_j_left_awc_trig_pos[2],def_axis_t),GetJ(#l_j_left_awc_trig_pos[2],def_axis_l),GetJ(#l_j_left_awc_trig_pos[2],def_axis_u)
+                                TPWrite 0,"TRIG_RE_RISE: %f, %f, %f, %f",GetJ(#l_j_left_awc_trig_pos[3],def_axis_z),GetJ(#l_j_left_awc_trig_pos[3],def_axis_t),GetJ(#l_j_left_awc_trig_pos[3],def_axis_l),GetJ(#l_j_left_awc_trig_pos[3],def_axis_u)
+                                TPWrite 0,"TRIG_RE_FALL: %f, %f, %f, %f",GetJ(#l_j_left_awc_trig_pos[4],def_axis_z),GetJ(#l_j_left_awc_trig_pos[4],def_axis_t),GetJ(#l_j_left_awc_trig_pos[4],def_axis_l),GetJ(#l_j_left_awc_trig_pos[4],def_axis_u)
+;
+                                Call save_awc_sensor_trig_pos(l_cur_ui_stnno,l_cur_ui_master_arm,def_awc_select_left,#l_j_left_awc_trig_pos[1],#l_j_left_awc_trig_pos[2],#l_j_left_awc_trig_pos[3],#l_j_left_awc_trig_pos[4])
+;
+                                Call calc_awc_sensor_pos(l_cur_ui_stnno,l_cur_ui_master_arm,def_awc_select_left,#l_j_left_awc_trig_pos[1],#l_j_left_awc_trig_pos[2],#l_j_left_awc_trig_pos[3],#l_j_left_awc_trig_pos[4],l_ret_errcode)
+                                IF (l_ret_errcode <> def_err_none) THEN
+                                        Call set_seq_start(FALSE)
+                                        TPWrite 0,"[cmd_awc_teaching] ERR_7.13: NOT CALCULATED LEFT AWC SENSOR POS"
+                                        RaiseError  -l_ret_errcode
+                                END
+                        END
+;
+                        IF (l_is_right_awc_enabled) THEN
+                                Point #l_j_right_awc_trig_pos[1] = #j_right_awc_trig_pos_extend_rising[1]
+                                Point #l_j_right_awc_trig_pos[2] = #j_right_awc_trig_pos_extend_falling[1]
+                                Point #l_j_right_awc_trig_pos[3] = #j_right_awc_trig_pos_retract_rising[1]
+                                Point #l_j_right_awc_trig_pos[4] = #j_right_awc_trig_pos_retract_falling[1]
+                                TPWrite 0,"[RIGHT AWC TRIGGER POS]"
+                                TPWrite 0,"TRIG_EX_RISE: %f, %f, %f, %f",GetJ(#l_j_right_awc_trig_pos[1],def_axis_z),GetJ(#l_j_right_awc_trig_pos[1],def_axis_t),GetJ(#l_j_right_awc_trig_pos[1],def_axis_l),GetJ(#l_j_right_awc_trig_pos[1],def_axis_u)
+                                TPWrite 0,"TRIG_EX_FALL: %f, %f, %f, %f",GetJ(#l_j_right_awc_trig_pos[2],def_axis_z),GetJ(#l_j_right_awc_trig_pos[2],def_axis_t),GetJ(#l_j_right_awc_trig_pos[2],def_axis_l),GetJ(#l_j_right_awc_trig_pos[2],def_axis_u)
+                                TPWrite 0,"TRIG_RE_RISE: %f, %f, %f, %f",GetJ(#l_j_right_awc_trig_pos[3],def_axis_z),GetJ(#l_j_right_awc_trig_pos[3],def_axis_t),GetJ(#l_j_right_awc_trig_pos[3],def_axis_l),GetJ(#l_j_right_awc_trig_pos[3],def_axis_u)
+                                TPWrite 0,"TRIG_RE_FALL: %f, %f, %f, %f",GetJ(#l_j_right_awc_trig_pos[4],def_axis_z),GetJ(#l_j_right_awc_trig_pos[4],def_axis_t),GetJ(#l_j_right_awc_trig_pos[4],def_axis_l),GetJ(#l_j_right_awc_trig_pos[4],def_axis_u)
+;
+                                Call save_awc_sensor_trig_pos(l_cur_ui_stnno,l_cur_ui_master_arm,def_awc_select_right,#l_j_right_awc_trig_pos[1],#l_j_right_awc_trig_pos[2],#l_j_right_awc_trig_pos[3],#l_j_right_awc_trig_pos[4])
+;
+                                Call calc_awc_sensor_pos(l_cur_ui_stnno,l_cur_ui_master_arm,def_awc_select_right,#l_j_right_awc_trig_pos[1],#l_j_right_awc_trig_pos[2],#l_j_right_awc_trig_pos[3],#l_j_right_awc_trig_pos[4],l_ret_errcode)
+                                IF (l_ret_errcode <> def_err_none) THEN
+                                        Call set_seq_start(FALSE)
+                                        TPWrite 0,"[cmd_awc_teaching] ERR_7.14: NOT CALCULATED RIGHT AWC SENSOR POS"
+                                        RaiseError  -l_ret_errcode
+                                END
+                        END
+;
+                        g_cur_seqno = 9999
+;
+;*******************************************************************************************************************
+; SEQ 9999: SEQUENCE를 끝냅니다.
+;*******************************************************************************************************************
+                ELIF (g_cur_seqno == 9999) THEN
+                        TPWrite 0,"SEQUENCE END"
+                        Call set_seq_start(FALSE)
+                END
+        END
+;
+;
+.LOCAL l_ret_is_fan_error
+;
+        Call check_fan_error(l_ret_is_fan_error)
+        IF (l_ret_is_fan_error <> FALSE) THEN
+                TPWrite 0,"[cmd_awc_teaching] ERR_7.15: FAN ERROR"
+                RaiseError  -def_err_fan
+        END

@@ -1,0 +1,14 @@
+;************************************************************************************************
+; 1. 함수 이름 : b_get_vrtl_wafer_present()
+;
+; 2. 함수 설명 : 로봇의 웨이퍼 유무 상태를 전시, 저장하기 위해 임시로 웨이퍼 유/무 상태를 설정하는 함수입니다.
+;************************************************************************************************
+;
+.PARAM p_i_arm_mode,p_i_master_arm,p_o_is_virtual_wafer_present
+;
+;
+        IF (p_i_arm_mode == def_arm_mode_single) THEN
+                p_o_is_virtual_wafer_present = g_is_vrtl_wafer_present[p_i_master_arm]
+        ELIF (p_i_arm_mode == def_arm_mode_dual) THEN
+                p_o_is_virtual_wafer_present = (g_is_vrtl_wafer_present[def_master_arm_lower] AND g_is_vrtl_wafer_present[def_master_arm_upper])
+        END

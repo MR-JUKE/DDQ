@@ -1,0 +1,18 @@
+;************************************************************************************************
+; 1. 함수 이름: set_robot_master_arm()
+;
+; 2. 함수 설명: 로봇의 마스터 암을 설정합니다.(미사용 함수)
+;
+; 3. Defined Error Code: ERR_x.x ~ 
+;************************************************************************************************
+.PARAM p_i_master_arm
+;
+;
+        IF (p_i_master_arm == def_master_arm_lower) THEN
+                SetMArm def_master_arm_lower
+        ELIF (p_i_master_arm == def_master_arm_upper) THEN
+                SetMArm def_master_arm_upper
+        ELSE
+                TPWrite 0,"[set_robot_master_arm] ERR_X.X: UNKNOWN 'p_i_master_arm' PARAM"
+                RaiseError -def_err_unknown_param
+        END

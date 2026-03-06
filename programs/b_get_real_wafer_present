@@ -1,0 +1,19 @@
+;************************************************************************************************
+; 1. 함수 이름 : b_get_real_wafer_present()
+;
+; 2. 함수 설명 : 로봇의 실제 웨이퍼 유무 상태를 반환하는 백그라운드 함수입니다. 'get_real_wafer_present()' 함수와 내용이 같습니다.
+;************************************************************************************************
+;
+.PARAM p_i_arm_mode,p_i_master_arm,p_o_is_real_wafer_present
+;
+;
+        p_o_is_real_wafer_present = FALSE
+;
+        g_is_real_wafer_present[def_master_arm_lower] = -1*ui_status_wafer_l
+        g_is_real_wafer_present[def_master_arm_upper] = -1*ui_status_wafer_u
+;
+        IF (p_i_arm_mode == def_arm_mode_single) THEN
+                p_o_is_real_wafer_present = g_is_real_wafer_present[p_i_master_arm]
+        ELIF (p_i_arm_mode == def_arm_mode_dual) THEN
+                p_o_is_real_wafer_present = (g_is_real_wafer_present[def_master_arm_lower] OR g_is_real_wafer_present[def_master_arm_upper])
+        END

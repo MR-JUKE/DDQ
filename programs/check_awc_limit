@@ -1,0 +1,19 @@
+;************************************************************************************************
+; 1. 함수 이름 : check_awc_limit(p_i_dx,p_i_dy,p_o_is_error)
+;
+; 2. 함수 설명 : 입력된 AWC 보정값에 대해 AWC Limit을 초과하는지 확인하고 에러 코드를 반환합니다.
+;************************************************************************************************
+;
+.PARAM p_i_stnno,p_i_dx,p_i_dy,p_o_is_error
+.LOCAL l_awc_limit_min_x,l_awc_limit_max_x,l_awc_limit_min_y,l_awc_limit_max_y
+;
+        p_o_is_error = FALSE
+;
+        l_awc_limit_min_x = ui_stn_awc_limit_min_x[p_i_stnno]
+        l_awc_limit_max_x = ui_stn_awc_limit_max_x[p_i_stnno]
+        l_awc_limit_min_y = ui_stn_awc_limit_min_y[p_i_stnno]
+        l_awc_limit_max_y = ui_stn_awc_limit_max_y[p_i_stnno]
+;
+        IF ((l_awc_limit_min_x>p_i_dx) OR (l_awc_limit_max_x<p_i_dx) OR (l_awc_limit_min_y>p_i_dy) OR (l_awc_limit_max_y<p_i_dy)) THEN
+                p_o_is_error = TRUE
+        END

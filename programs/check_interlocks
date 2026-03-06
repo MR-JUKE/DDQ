@@ -1,0 +1,87 @@
+;************************************************************************************************
+; 1. 함수 이름 : check_interlocks(p_i_stnno,p_i_robot_step,p_o_errcode)
+;
+; 2. 함수 설명 : 입력받은 STEP에 대해 INTERLOCK을 확인하고 에러 코드를 반환합니다.
+;************************************************************************************************
+;
+.PARAM p_i_stnno,p_i_robot_step,p_o_errcode
+.LOCAL l_ret_is_motion_done,l_ret_ishome,l_ret_use_station,l_ret_errcode,l_ret_is_open,l_ret_is_up
+;
+;
+;================================================================================================
+;     CHECK L, U AXIS POSITION
+;================================================================================================
+.LOCAL l_ret_is_safepose
+;
+        IF (p_i_robot_step == def_move_waitpose) THEN
+                Call check_safe_pose(l_ret_is_safepose)
+                IF (l_ret_is_safepose <> TRUE) THEN
+                        TPWrite 0,"[check_interlocks] NOT IN SAFE POSE"
+                        p_o_errcode = def_err_is_safe_pose
+                        Return
+                END
+        END
+;
+;
+;================================================================================================
+;     GET MOTION FINISH STAT
+;================================================================================================
+        Call get_status_motion_finish(l_ret_is_motion_done)       ; 모션 완료 여부를 반환합니다.
+        IF (l_ret_is_motion_done <> TRUE) THEN
+                TPWrite 0,"[check_interlocks] NOT MOTION FINISH"
+                p_o_errcode = def_err_motion_finish
+                Return
+        END
+;
+;
+;================================================================================================
+;     GET HOME STAT 
+;================================================================================================
+        Call get_status_is_home(l_ret_ishome)                     ; HOME 동작 완료 여부를 반환합니다.
+        IF (FALSE == l_ret_ishome) THEN
+                TPWrite 0,"[check_interlocks] NEED TO SET HOME POSE"
+                p_o_errcode = def_err_is_home
+                Return
+        END
+;
+;
+;================================================================================================
+;     GET STAT USE STATION
+;================================================================================================
+        Call get_status_use_station(p_i_stnno,l_ret_use_station)          ; STATION 사용 여부를 반환합니다.
+        IF (FALSE == l_ret_use_station) THEN
+                TPWrite 0,"[check_interlocks] SET AS UNUSED STATION"
+                p_o_errcode = def_err_use_station
+                Return
+        END
+;
+;
+;================================================================================================
+;     CHECK DOOR OPEN
+;================================================================================================
+        IF (p_i_robot_step == def_move_extend) OR (p_i_robot_step == def_move_awc_via) THEN
+                Call check_gate_open(p_i_stnno,l_ret_is_open) ; STATION DOOR 열림 여부 확인
+                IF (l_ret_is_open <> TRUE) THEN
+                        p_o_errcode = def_err_gate_open
+                        Return
+                END
+;
+                Call check_lift_up(p_i_stnno,l_ret_is_up) ; LIFT UP 여부 확인
+                IF (l_ret_is_up <> TRUE) THEN
+                        p_o_errcode = def_err_lift
+                        Return
+                END
+        END
+;
+;
+;================================================================================================
+;     CHECK ROBOT STEP
+;================================================================================================
+        Call check_interlock_step(p_i_robot_step,l_ret_errcode)
+        IF (l_ret_errcode <> def_err_none) THEN
+                p_o_errcode = l_ret_errcode
+                Return
+        END
+;
+;
+        p_o_errcode = def_err_none

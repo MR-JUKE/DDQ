@@ -1,0 +1,58 @@
+;************************************************************************************************
+; 1. 함수이름 : check_interlocks_awc(p_i_cmd,p_i_stnno,p_i_slotno,p_i_arm_mode,p_i_master_arm,p_o_errcode)
+;
+; 2. 함수 설명 : AWC Teaching 진행 시 INTERLOCK을 확인하고 에러 코드를 반환합니다.
+;************************************************************************************************
+;
+.PARAM p_i_cmd,p_i_stnno,p_i_slotno,p_i_arm_mode,p_i_master_arm,p_o_errcode
+.LOCAL l_use_awc,l_ret_is_on,l_ret_is_door_open,l_ret_is_wafer_present
+;
+;
+        p_o_errcode = def_err_none
+;
+;================================================================================================
+;     CHECK USING AWC FUNCTION
+;================================================================================================
+;        l_use_awc = ui_stn_awc_enable[p_i_stnno]
+;        IF (l_use_awc == FALSE) THEN
+;                TPWrite 0,"[check_interlocks_awc] STATION %d NOT USE AWC FUNCTION", p_i_stnno
+;                p_o_errcode = def_err_use_awc
+;                Return
+;        END
+;
+;
+;================================================================================================
+;     CHECK ARM MODE
+;================================================================================================
+        IF (p_i_arm_mode == def_arm_mode_dual) THEN
+            TPWrite 0,"[check_interlocks_awc] NOT SUPPORTED AWC FUNCTION IN DUAL ARM"
+            p_o_errcode = def_err_arm_mode
+            Return
+        END
+;
+;
+;================================================================================================
+;     CHECK WAFER PRESENCE
+;================================================================================================
+        Call get_status_interlock(def_interlock_mask_wafer_data_check,l_ret_is_on)
+        Call get_real_wafer_present(p_i_arm_mode,p_i_master_arm,l_ret_is_wafer_present)
+        IF ((p_i_cmd == def_cmd_pick) AND (l_ret_is_on == TRUE) AND (l_ret_is_wafer_present == TRUE)) THEN
+                TPWrite 0,"[check_interlocks_awc] INAPPROPRIATE WAFER DATA ON LOWER ARM", p_i_stnno
+                p_o_errcode = def_err_wafer_data
+                Return
+        ELIF ((p_i_cmd == def_cmd_place) AND (l_ret_is_on == TRUE) AND (l_ret_is_wafer_present == FALSE)) THEN
+                TPWrite 0,"[check_interlocks_awc] INAPPROPRIATE WAFER DATA ON UPPER ARM", p_i_stnno
+                p_o_errcode = def_err_wafer_data
+                Return
+        END
+;
+;
+;================================================================================================
+;     CHECK DOOR OPEN
+;================================================================================================
+        Call check_gate_open(p_i_stnno,l_ret_is_door_open)
+        IF (l_ret_is_door_open <> TRUE) THEN
+                TPWrite 0,"[check_interlocks_awc] STATION %d DOOR CLOSE", p_i_stnno
+                p_o_errcode = def_err_gate_open
+                Return
+        END

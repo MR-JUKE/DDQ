@@ -1,0 +1,58 @@
+;************************************************************************************************
+; 1. 함수 이름 : move_motion_point(p_i_stn_number,p_i_move_point)
+; 2. 함수 설명 : 목적 좌표로 로봇을 이동시키는 함수입니다.
+;************************************************************************************************
+.PARAM p_i_stn_number,p_i_move_point
+.LOCAL #l_j_move_point
+;
+;
+        Point #l_j_move_point = Joint(0)
+;
+        Call set_status_motion_finish(p_i_move_point,FALSE)
+;
+        IF (p_i_move_point == def_move_home) THEN                               ; [MOVE HOME]
+                Point #l_j_move_point = #j_point_home
+;
+        ELIF (p_i_move_point == def_move_safepose) THEN                         ; [MOVE SAFEPOSE]
+                Point #l_j_move_point = #j_point_safepose
+;
+        ELIF (p_i_move_point == def_move_waitpose) THEN                         ; [MOVE WAITPOSE]
+                Point #l_j_move_point = #j_point_waitpose
+;
+        ELIF (p_i_move_point == def_move_extend) THEN                           ; [MOVE EXTEND]
+                Point #l_j_move_point = #j_point_extend
+;
+        ELIF (p_i_move_point == def_move_up) THEN                               ; [MOVE UP]
+                Point #l_j_move_point = #j_point_up
+;
+        ELIF (p_i_move_point == def_move_teach) THEN                            ; [MOVE TEACH]
+                Point #l_j_move_point = #j_point_teach
+;
+        ELIF (p_i_move_point == def_move_down) THEN                             ; [MOVE DOWN]
+                Point #l_j_move_point = #j_point_down
+;
+        ELIF (p_i_move_point == def_move_retract) THEN                          ; [MOVE RETRACT]
+                Point #l_j_move_point = #j_point_retract
+;
+        ELIF (p_i_move_point == def_move_awc_via) THEN                          ; [MOVE AWC VIA]
+                Point #l_j_move_point = #j_point_awc_via
+;
+        ELIF (p_i_move_point == def_move_awc_extend) THEN                       ; [MOVE AWC EXTEND]
+                Point #l_j_move_point = #j_point_awc_extend
+;
+        ELIF (p_i_move_point == def_move_awc_teach) THEN                        ; [MOVE AWC TEACH]
+                Point #l_j_move_point = #j_point_awc_teach
+;
+        ELIF (p_i_move_point == def_move_awc_down) THEN                         ; [MOVE AWC DOWN]
+                Point #l_j_move_point = #j_point_awc_down
+;
+        ELSE
+                TPWrite 0,"[move_motion_point] UNKNOWN MOTION POINT"
+                RaiseError -def_err_unknown_param
+        END
+;
+        MoveJ  #l_j_move_point
+        Break
+;        Stable 0.5
+;
+        Call set_status_motion_finish(p_i_move_point,TRUE)

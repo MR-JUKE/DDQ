@@ -1,0 +1,12 @@
+;************************************************************************************************
+; 1. 함수 이름 : get_cur_ui_cmd_var(p_o_cur_cmd,p_o_stnno,p_o_slotno,p_o_arm_mode,p_o_master_arm)
+; 2. 함수 설명 : 현재 UI 명령 변수 값을 받아옵니다.
+;************************************************************************************************
+.PARAM p_o_cur_cmd,p_o_stnno,p_o_slotno,p_o_arm_mode,p_o_master_arm
+;
+;
+        p_o_cur_cmd = ui_cur_cmd     ; 현재 명령
+        p_o_stnno = ui_stnno         ; STATION 번호
+        p_o_slotno = ui_slotno       ; SLOT 번호
+        p_o_arm_mode = ui_cur_dual   ; SINGLE/DUAL ARM 모드
+        p_o_master_arm = ui_cur_arm  ; MASTER ARM

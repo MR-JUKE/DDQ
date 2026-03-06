@@ -1,0 +1,89 @@
+;************************************************************************************************
+; 1. 함수 이름 : def_speeds()
+;
+; 2. 함수 설명 : 모션 구간 별 속도 상수를 정의합니다.
+;************************************************************************************************
+;
+;================================================================================================
+;       INITIALIZE COMMON SETTING
+;================================================================================================
+;        def_use_smooth = TRUE                ; [INIT] COMMON SMOOTH ENABLE
+        def_speed_rate_ahs_off = 0.7
+        def_speed_rate_ahs_on = 1
+;
+;        def_speed_wf_exist_y = 0.7              ; [INIT] COMMON SPEED AHS OFF
+;        def_speed_wf_exist_n = 1                ; [INIT] COMMON SPEED AHS AND AND WAFER NOT EXIST
+;
+;================================================================================================
+;       INITIALIZE HOME POSITION MOVE SPEED SETTING
+;================================================================================================
+;        def_speed_home = 100                    ; [INIT] HOME SPEED
+;        def_accuracy_home = 0                   ; [INIT] HOME ACCURACY
+;        def_accel_home = 100                    ; [INIT] HOME ACCEL
+;        def_decel_home = 100                    ; [INIT] HOME DECEL
+;        def_jerk_home = 0.01                    ; [INIT] HOME JERK
+;
+;================================================================================================
+;       INITIALIZE SAFEPOSE POSITION MOVE SPEED SETTING
+;================================================================================================
+;        def_speed_safepose = 100                ; [INIT] SAFEPOSE SPEED
+;        def_accuracy_safepose = 0               ; [INIT] SAFEPOSE ACCURACY
+;        def_accel_safepose = 100                ; [INIT] SAFEPOSE ACCEL
+;        def_decel_safepose = 100                ; [INIT] SAFEPOSE DECEL
+;        def_jerk_safepose = 0.01                ; [INIT] SAFEPOSE JERK
+;
+;================================================================================================
+;       INITIALIZE WAITPOSE POSITION MOVE SPEED SETTING
+;================================================================================================
+;        def_accuracy_waitpose = 0               ; [INIT] WAITPOSE ACCURACY
+;        def_accel_waitpose = 100                ; [INIT] WAITPOSE ACCEL
+;        def_decel_waitpose = 100                ; [INIT] WAITPOSE DECEL
+;        def_jerk_waitpose = 0.01                ; [INIT] WAITPOSE JERK
+;
+;================================================================================================
+;       INITIALIZE EXTEND POSITION MOVE SPEED SETTING
+;================================================================================================
+;        def_accuracy_extend = 0                 ; [INIT] EXTEND ACCURACY
+;        def_accel_extend = 100                  ; [INIT] EXTEND ACCEL
+;        def_decel_extend = 100                  ; [INIT] EXTEND DECEL
+;        def_jerk_extend = 0.01                  ; [INIT] EXTEND JERK
+;
+;================================================================================================
+;       INITIALIZE UP POSITION MOVE SPEED SETTING
+;================================================================================================
+;        def_accuracy_up = 0                     ; [INIT] UP ACCURACY
+;        def_accel_up = 100                      ; [INIT] UP ACCEL
+;        def_decel_up = 100                      ; [INIT] UP DECEL
+;        def_jerk_up = 0.01                      ; [INIT] UP JERK
+;
+;================================================================================================
+;       INITIALIZE DOWN POSITION MOVE SPEED SETTING
+;================================================================================================
+;        def_accuracy_down = 0                   ; [INIT] DOWN ACCURACY
+;        def_accel_down = 100                    ; [INIT] DOWN ACCEL
+;        def_decel_down = 100                    ; [INIT] DOWN DECEL
+;        def_jerk_down = 0.01                    ; [INIT] DOWN JERK
+;
+;================================================================================================
+;       INITIALIZE RETRACT POSITION MOVE SPEED SETTING
+;================================================================================================
+;        def_accuracy_retract = 0                ; [INIT] RETRACT ACCURACY
+;        def_accel_retract = 100                 ; [INIT] RETRACT ACCEL
+;        def_decel_retract = 100                 ; [INIT] RETRACT DECEL
+;        def_jerk_retract = 0.01                 ; [INIT] JRETRACT ERK
+;
+;================================================================================================
+;       INITIALIZE AWC VIA POSITION MOVE SPEED SETTING
+;================================================================================================
+;        def_accuracy_awc_via = 0                ; [INIT] AWC VIA ACCURACY
+;        def_accel_awc_via = 30                  ; [INIT] AWC VIA ACCEL
+;        def_decel_awc_via = 30                  ; [INIT] AWC VIA DECEL
+;        def_jerk_awc_via = 0.01                 ; [INIT] AWC VIA JERK
+;
+;================================================================================================
+;       INITIALIZE AWC EXTEND POSITION MOVE SPEED SETTING
+;================================================================================================
+;        def_accuracy_awc_extend = 0             ; [INIT] AWC EXTEND ACCURACY
+;        def_accel_awc_extend = 30               ; [INIT] AWC EXTEND ACCEL
+;        def_decel_awc_extend = 30               ; [INIT] AWC EXTEND DECEL
+;        def_jerk_awc_extend = 0.01              ; [INIT] AWC EXTEND JERK

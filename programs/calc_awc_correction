@@ -1,0 +1,60 @@
+;************************************************************************************************
+; 1. 함수 이름 : calc_awc_correction(p_i_stnno,p_i_master_arm,p_i_awc_sensor_pos,p_i_step,p_o_dx,p_o_dy,p_o_errcode)
+;
+; 2. 함수 설명 : AWC 보정값을 반환하는 함수입니다.
+;************************************************************************************************
+;
+.PARAM p_i_stnno,p_i_master_arm,p_i_awc_sensor_pos,p_i_step,p_o_dx,p_o_dy,p_o_errcode
+.LOCAL #l_ret_trig_pos_rising,#l_ret_trig_pos_falling
+.LOCAL #l_tch_trig_pos_rising,#l_tch_trig_pos_falling
+.LOCAL #l_cur_trig_pos_rising,#l_cur_trig_pos_falling
+.LOCAL l_ret_awc_dx_tch,l_ret_awc_dy_tch,l_ret_awc_dx,l_ret_awc_dy
+.LOCAL l_ret_errcode
+;
+;
+        p_o_dx = 0
+        p_o_dy = 0
+        p_o_errcode = def_err_none
+;
+;       ; AWC TEACHING 시 저장된 트리거 위치를 가져온다.
+        TPWrite 0,"[calc_awc_correction] GET TAUGHT AWC TRIG POS"
+        Call get_awc_sensor_taught_trig_pos(p_i_stnno,p_i_master_arm,p_i_awc_sensor_pos,p_i_step,#l_ret_trig_pos_rising,#l_ret_trig_pos_falling,l_ret_errcode)
+        IF (l_ret_errcode <> def_err_none) THEN
+                TPWrite 0,"[calc_awc_correction] TAUGHT AWC SENSOR TRIGGER POSITION CANNOT BE OBTAINED."
+                p_o_errcode = l_ret_errcode
+                Return
+        END
+;       ; AWC TEACHING 시 저장한 트리거 위치를 지역 변수에 저장한다.
+        Point #l_tch_trig_pos_rising = #l_ret_trig_pos_rising
+        Point #l_tch_trig_pos_falling = #l_ret_trig_pos_falling
+        TPWrite 0,"TAUGHT TRIG POS(RI): %f, %f, %f, %f",GetJ(#l_tch_trig_pos_rising,def_axis_z),GetJ(#l_tch_trig_pos_rising,def_axis_t),GetJ(#l_tch_trig_pos_rising,def_axis_l),GetJ(#l_tch_trig_pos_rising,def_axis_u)
+        TPWrite 0,"TAUGHT TRIG POS(FA): %f, %f, %f, %f",GetJ(#l_tch_trig_pos_falling,def_axis_z),GetJ(#l_tch_trig_pos_falling,def_axis_t),GetJ(#l_tch_trig_pos_falling,def_axis_l),GetJ(#l_tch_trig_pos_falling,def_axis_u)
+;
+;       ; 지역 변수에 저장한 트리거 위치로 dx, dy 계산 값(A)을 반환한다.
+        Call calc_awc_offset(p_i_master_arm,p_i_awc_sensor_pos,#l_tch_trig_pos_rising,#l_tch_trig_pos_falling,l_ret_awc_dx_tch,l_ret_awc_dy_tch)
+;
+;       ; 현재 모션 중 감지된 AWC 트리거 위치를 가져온다.
+        TPWrite 0,"[calc_awc_correction] GET CUR AWC TRIG POS"
+        Call get_awc_sensor_trig_pos(p_i_stnno,p_i_awc_sensor_pos,#l_ret_trig_pos_rising,#l_ret_trig_pos_falling,l_ret_errcode)
+        IF (l_ret_errcode <> def_err_none) THEN
+                TPWrite 0,"[calc_awc_correction] AWC SENSOR TRIGGER POSITION CANNOT BE OBTAINED."
+                p_o_errcode = l_ret_errcode
+                Return
+        END
+;       ; AWC VIA 위치로 이동 시 저장된 트리거 위치를 지역 변수에 저장한다.
+        Point #l_cur_trig_pos_rising = #l_ret_trig_pos_rising
+        Point #l_cur_trig_pos_falling = #l_ret_trig_pos_falling
+        TPWrite 0,"CUR TRIG POS(RI): %f, %f, %f, %f",GetJ(#l_cur_trig_pos_rising,def_axis_z),GetJ(#l_cur_trig_pos_rising,def_axis_t),GetJ(#l_cur_trig_pos_rising,def_axis_l),GetJ(#l_cur_trig_pos_rising,def_axis_u)
+        TPWrite 0,"CUR TRIG POS(FA): %f, %f, %f, %f",GetJ(#l_cur_trig_pos_falling,def_axis_z),GetJ(#l_cur_trig_pos_falling,def_axis_t),GetJ(#l_cur_trig_pos_falling,def_axis_l),GetJ(#l_cur_trig_pos_falling,def_axis_u)
+;
+;       ; 지역 변수에 저장한 트리거 위치로 dx, dy 계산 값(B)을 반환한다.
+        Call calc_awc_offset(p_i_master_arm,p_i_awc_sensor_pos,#l_cur_trig_pos_rising,#l_cur_trig_pos_falling,l_ret_awc_dx,l_ret_awc_dy)
+;
+;       ; (B)값과 (A)값의 차로 계산된 최종 보정해야 할 dx,dy 값을 산출한다.
+        ;p_o_dx = -(l_ret_awc_dx-l_ret_awc_dx_tch)
+        ;p_o_dx = l_ret_awc_dx-l_ret_awc_dx_tch
+        ;p_o_dy = l_ret_awc_dy-l_ret_awc_dy_tch
+        p_o_dx = l_ret_awc_dx_tch-l_ret_awc_dx
+        p_o_dy = l_ret_awc_dy_tch-l_ret_awc_dy
+        TPWrite 0,"[calc_awc_correction] DIFF dx = %f",p_o_dx
+        TPWrite 0,"[calc_awc_correction] DIFF dy = %f",p_o_dy

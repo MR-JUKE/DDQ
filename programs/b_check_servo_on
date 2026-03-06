@@ -1,0 +1,19 @@
+;************************************************************************************************
+; 1. 함수 이름 : b_check_servo_on()
+; 2. 함수 설명 : TEACH MODE 확인하여 전 스테이션 RETRACT SIGNAL OFF 및 HOME, READY BIT OFF
+;************************************************************************************************
+;
+        g_cur_is_servo_on = IsServoOn
+
+        IF (g_pre_is_servo_on <> g_cur_is_servo_on) THEN
+                g_pre_is_servo_on = g_cur_is_servo_on
+;
+                IF (g_cur_is_servo_on == FALSE) THEN
+                        TPWrite 0,"[SERVO OFF]"
+                        Call set_signal_retract(def_null_station,def_signal_off_all) ; 전 스테이션 RETRACT SIGNAL OFF
+                        Call set_status_home(FALSE)             ; HOME STATUS FALSE
+                        Call set_status_safepose(FALSE)         ; SAFEPOSE STATUS FALSE
+                ELSE
+                        TPWrite 0,"[SERVO ON]"
+                END
+        END

@@ -1,0 +1,79 @@
+; =================> MOVE GOTO WAIT
+        ui_stnno = 3 ; STATION NUBER
+        ui_slotno = 1 ; SLOT NUMBER
+        ui_cur_dual = 1 ; SINGLE : 1, DUAL : 2
+        ui_cur_arm = 1 ; LOWER : 1, UPPER : 2
+        ui_cur_cmd = 1 ; PICK : 1, PLACE : 2
+        Call goto_waitpose()
+; =================> MOVE GOTO WAIT
+        ui_stnno = 2 ; STATION NUBER
+        ui_slotno = 1 ; SLOT NUMBER
+        ui_cur_dual = 1 ; SINGLE : 1, DUAL : 2
+        ui_cur_arm = 1 ; LOWER : 1, UPPER : 2
+        ui_cur_cmd = 1 ; PICK : 1, PLACE : 2
+        Call goto_waitpose()
+; =================> MOVE GOTO FULL
+        ui_stnno = 1 ; STATION NUBER
+        ui_slotno = 1 ; SLOT NUMBER
+        ui_cur_dual = 1 ; SINGLE : 1, DUAL : 2
+        ui_cur_arm = 1 ; LOWER : 1, UPPER : 2
+        ui_cur_cmd = 1 ; PICK : 1, PLACE : 2
+        Call cmd_pick()
+; =================> MOVE GOTO FULL
+        ui_stnno = 1 ; STATION NUBER
+        ui_slotno = 1 ; SLOT NUMBER
+        ui_cur_dual = 1 ; SINGLE : 1, DUAL : 2
+        ui_cur_arm = 2 ; LOWER : 1, UPPER : 2
+        ui_cur_cmd = 1 ; PICK : 1, PLACE : 2
+        Call cmd_pick()
+; =================> MOVE GOTO FULL
+        ui_stnno = 1 ; STATION NUBER
+        ui_slotno = 1 ; SLOT NUMBER
+        ui_cur_dual = 1 ; SINGLE : 1, DUAL : 2
+        ui_cur_arm = 1 ; LOWER : 1, UPPER : 2
+        ui_cur_cmd = 2 ; PICK : 1, PLACE : 2
+        Call cmd_place()
+; =================> MOVE GOTO FULL
+        ui_stnno = 1 ; STATION NUBER
+        ui_slotno = 1 ; SLOT NUMBER
+        ui_cur_dual = 1 ; SINGLE : 1, DUAL : 2
+        ui_cur_arm = 2 ; LOWER : 1, UPPER : 2
+        ui_cur_cmd = 2 ; PICK : 1, PLACE : 2
+        Call cmd_place()
+; =================> MOVE GOTO WAIT
+        ui_stnno = 3 ; STATION NUBER
+        ui_slotno = 1 ; SLOT NUMBER
+        ui_cur_dual = 1 ; SINGLE : 1, DUAL : 2
+        ui_cur_arm = 1 ; LOWER : 1, UPPER : 2
+        ui_cur_cmd = 1 ; PICK : 1, PLACE : 2
+        Call goto_waitpose()
+; =================> MOVE GOTO WAIT
+        ui_stnno = 1 ; STATION NUBER
+        ui_slotno = 1 ; SLOT NUMBER
+        ui_cur_dual = 1 ; SINGLE : 1, DUAL : 2
+        ui_cur_arm = 1 ; LOWER : 1, UPPER : 2
+        ui_cur_cmd = 1 ; PICK : 1, PLACE : 2
+        Call goto_waitpose()
+; =================> MOVE GOTO WAIT
+        ui_stnno = 4 ; STATION NUBER
+        ui_slotno = 1 ; SLOT NUMBER
+        ui_cur_dual = 1 ; SINGLE : 1, DUAL : 2
+        ui_cur_arm = 1 ; LOWER : 1, UPPER : 2
+        ui_cur_cmd = 1 ; PICK : 1, PLACE : 2
+        Call goto_waitpose()
+; =================> MOVE GOTO WAIT
+        ui_stnno = 1 ; STATION NUBER
+        ui_slotno = 1 ; SLOT NUMBER
+        ui_cur_dual = 1 ; SINGLE : 1, DUAL : 2
+        ui_cur_arm = 1 ; LOWER : 1, UPPER : 2
+        ui_cur_cmd = 1 ; PICK : 1, PLACE : 2
+        Call goto_waitpose()
+; =================> MOVE GOTO WAIT
+        ui_stnno = 5 ; STATION NUBER
+        ui_slotno = 1 ; SLOT NUMBER
+        ui_cur_dual = 1 ; SINGLE : 1, DUAL : 2
+        ui_cur_arm = 1 ; LOWER : 1, UPPER : 2
+        ui_cur_cmd = 1 ; PICK : 1, PLACE : 2
+        Call goto_waitpose()
+; =================> MOVE HOME
+        Call goto_home()
